@@ -7,14 +7,14 @@
 // @exclude        http://www.nexusclash.com/modules.php?name=Game&op=disconnect
 // @grant          GM_getValue
 // @grant          GM_setValue
-// @version     3.0
+// @version     3.0.1
 // ==/UserScript==
 
 (function () {
-versionStr = '3.0'; // version updates go here too!
+versionStr = '3.0.1'; // version updates go here too!
 
 libCLogging = true;         // logs to console; can disable if you want
-libCLoggingVerbose = true; // enable for dev-work
+libCLoggingVerbose = false; // enable for dev-work
 
 
 //#############################################################################
@@ -49,7 +49,7 @@ try {
         this.GM_setValue = function (key, value) { localStorage[key] = value; return true; };
         this.GM_deleteValue = function (key) { return delete localStorage[key]; };
     }
-} catch (e) { logLibC('LibC: GM_set/get error:\n' + e.message); }
+} catch (e) { logLibC('GM_set/get error:\n' + e.message); }
 
 // global info: used to determine if script can safely run without errors (and also character info)
 var charinfodiv = null, levelclass = null, levelclassname = '', charinfoid = null;
@@ -246,7 +246,7 @@ function sortpeople() {
     if (peoplematch[2] !== 0) {
         ppl = peoplematch[4].substring(1, peoplematch[4].length - 1).split('>, <');
         len = ppl.length;
-        if (len != parseInt(peoplematch[2])) { logLibC('LibC: Count fails to match peoplematch count'); return; }
+        if (len != parseInt(peoplematch[2])) { logLibC('Count fails to match peoplematch count'); return; }
         for (i = 0; i < len; i++) {
             person = createSortPerson(ppl[i], allyneutral);
             if (person['sorttype'] === 0) { people[0].push(person); }
@@ -264,7 +264,7 @@ function sortpeople() {
     
         // now format for display
         count = (people[0].length + people[1].length);
-        if (count != parseInt(peoplematch[2])) { logLibC('LibC: Count fails to match peoplematch count'); return; } // just in case
+        if (count != parseInt(peoplematch[2])) { logLibC('Count fails to match peoplematch count'); return; } // just in case
         if (count == 1) {
             h = '<p id="chars_desc">There is 1 other person here.</p>\n';
         } else {
@@ -441,6 +441,31 @@ function createHiddenButton(btn) {
     }
 }
 
+function createDoubleClickButton(btn) {
+    var newbutton = document.createElement('a');
+    var doubleClick = (function () {
+        var count = 1;
+        return function(e) {
+            if (count > 1) {
+                e.target.nextElementSibling.click();
+                logLibC('clicking '+e.target.nextElementSibling.href, verbose=true);
+            }
+            count += 1;
+            if (e.target.textContent.slice(-1) === '?') {
+                // cut off trailing '?''
+                e.target.textContent = e.target.textContent.slice(0,-1);
+            }
+        }
+    }());
+    newbutton.addEventListener('click', doubleClick, false); // [next].click
+    if (btn.textContent == 'Load Spellwand') { newbutton.textContent = 'Load'; } // make it short and sweet
+    else { newbutton.textContent = btn.textContent; } // portability
+    newbutton.textContent += '?';
+    newbutton.className = 'item_use'; // hoping this works
+    btn.parentNode.insertBefore(newbutton, btn);
+    btn.style.visibility = 'hidden';
+}
+
 function safebuttons() {
     var loc = location + '';
     if (!charinfoid && getGlobalSetting('safebuttons') == 'true') {
@@ -452,6 +477,7 @@ function safebuttons() {
         if (getSetting('safety-extra-craft') == 'true') { safetyButtons("//form[@name='craft']/input[@type='submit' and @value='Craft']", 'disable'); safetyButtons("//form[@name='skill_craft']/input[@type='submit']", 'disable'); }
         if (getSetting('safety-extra-repair') == 'true') { safetyButtons("//form[@name='repair']/input[@type='submit' and @value='Repair']", 'disable'); }
         if (getSetting('safety-extra-revoke') == 'true') { safetyButtons("//form[@name='stronghold']/input[@name='action' and @value='revoke']/../input[@type='submit']", 'disable'); }
+        if (getSetting('safety-extra-loadwand') == 'true') { safetyButtons("//a[@class='item_use' and starts-with(text(), 'Load')]", 'wand'); }
         if (getSetting('safety-extra-speech') == 'true') { safebuttons_speech(); }
     }
 }
@@ -465,6 +491,7 @@ function safetyButtons(xPathStr, operation) {
         elementButton = buttons.snapshotItem(i);
         if (operation == 'disable') { createDisableButton(elementButton); }
         else if (operation == 'hide') { createHiddenButton(elementButton); }
+        else if (operation == 'wand') { createDoubleClickButton(elementButton); }
     }
 }
 
@@ -1319,7 +1346,7 @@ function factioncensus() {
     var ranks, census, ranksrow, rcell, rdiv;
     if (!loc.match(/faction&do=roster/)) { return; }
     ranks = document.evaluate("//table/tbody/tr[th='Character']/..", document, null,XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-    if (ranks.snapshotLength != 1) { logLibC('lib: census failed to find ranks'); return; }
+    if (ranks.snapshotLength != 1) { logLibC('census failed to find ranks'); return; }
     census = (ranks.snapshotItem(0).childElementCount - 1);
     if (census === 0) { return; }
     ranksrow = document.evaluate("//div/table/tbody/tr[td='Renown']", document, null,XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -1454,7 +1481,7 @@ function inventory_context_use(e) {
     } else if (setting == 'foot') {
         temp = document.evaluate("//form[@name='safestock' and contains(@action, 'op=footlocker')]/select[@name='item']", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
     } else if (setting == 'null') { return; }
-    else { logLibC('LibC: skipping invalid inventory context select'); return; }
+    else { logLibC('skipping invalid inventory context select'); return; }
     if (temp.snapshotLength === 0) { return; }
     temp = temp.snapshotItem(0);
     form = document.evaluate("input[@type='submit']", temp.parentNode, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null).snapshotItem(0);
@@ -1533,7 +1560,7 @@ function speakdefaults() {
 function logLibC(message, verbose=false) {
     if (!libCLogging) { return; } // logging disabled in userscript (top of the file)
     if (verbose && !libCLoggingVerbose) { return; } // verbose logging not enabled
-    console.log(message);
+    console.log('[LibC] [ver:'+versionStr+']:  '+message);
 }
 
 function getSetting(settingname) {
@@ -1645,6 +1672,7 @@ function libSettings() {
         ['safety', 'b', 'Safe Learn Buttons', 'learn', 'Adds safeties to Learn Spell buttons.'],
         ['safety', 'b', 'Safe Revoke Button', 'revoke', 'Adds a safety to the Revoke Stronghold button.'],
         ['safety', 'b', 'Safe Speech Buttons', 'speech', 'Adds a safety to Speech/Bullhorn buttons, so that you must enter something before sending.'],
+        ['safety', 'b', 'Safe Load Wand', 'loadwand', 'Adds double-click safeties to (re)load spellwand buttons.'],
         ['weaponpane', 'b', 'Print DPA', 'dpa', 'Prints the raw DPA for each attack in drop-downs.'],
         ['weaponpane', 'b', 'Shorten Damage', 'dmg', 'Shortens the damage and accuracy counts in drop-downs.'],
         ['weaponpane', 'b', 'Shorten Shots', 'shots', 'Shortens the shots remaining in drop-downs.'],
