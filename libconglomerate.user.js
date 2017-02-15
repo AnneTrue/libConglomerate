@@ -7,15 +7,21 @@
 // @exclude        http://www.nexusclash.com/modules.php?name=Game&op=disconnect
 // @grant          GM_getValue
 // @grant          GM_setValue
-// @version     2.12
+// @version     3.0
 // ==/UserScript==
 
-//var moves = document.getElementsByName('move'); while (moves.length > 0) { moves[0].remove(); }
-    //one-liner to remove "move" buttons from map for screenshots
-
-
 (function () {
-versionStr = '2.12'; // version updates go here too!
+versionStr = '3.0'; // version updates go here too!
+
+libCLogging = true;         // logs to console; can disable if you want
+libCLoggingVerbose = true; // enable for dev-work
+
+
+//#############################################################################
+// boilerplate functions:
+
+// takes list of css to inject into the global style sheet
+// uses list to batch the operation, instead of multiple read/write operations to DOM
 function addGlobalStyle(list) {
     var head, style, i, len, css= '';
     head = document.getElementsByTagName('head')[0];
@@ -27,24 +33,34 @@ function addGlobalStyle(list) {
     style.innerHTML = css;
     head.appendChild(style);
 }
+
+// generic functions
 function timesCharExist(x, c){ var t=0,l=0;c=c+''; while(l=x.indexOf(c,l)+1)++t; return t; }
 function ucfirstletter(str){ return str.replace(/\b[A-Za-z]/,function($0) { return $0.toUpperCase(); }); }
 function isNormalInteger(str) { var n = ~~Number(str); return String(n) === str && n >= 0; }
+
+// forces ints to be two digits long for displaying as string
 function fluffDigit(x) { if (x<10) { x = '0'+x; } return x; }
+
+// platform support: GM is provided by greasemonkey, if not assume chrome and use localStorage
 try {
     if (!this.GM_getValue || (this.GM_getValue.toString && this.GM_getValue.toString().indexOf('not supported') > -1)) {
         this.GM_getValue = function (key, def) { return localStorage[key] || def; };
         this.GM_setValue = function (key, value) { localStorage[key] = value; return true; };
         this.GM_deleteValue = function (key) { return delete localStorage[key]; };
     }
-} catch (e) { console.log('LibC: GM_set/get error:\n' + e.message); }
+} catch (e) { logLibC('LibC: GM_set/get error:\n' + e.message); }
+
+// global info: used to determine if script can safely run without errors (and also character info)
 var charinfodiv = null, levelclass = null, levelclassname = '', charinfoid = null;
-if (document.getElementById('CharacterInfo')) {
+if (document.getElementById('CharacterInfo')) { //get general data from the page
     charinfodiv = document.getElementById('CharacterInfo');
     levelclass = charinfodiv.getElementsByTagName('td')[1];
     levelclassname = /Level [0-9]+ (.+)/.exec(levelclass.innerHTML)[1];
     charinfoid = charinfodiv.getElementsByTagName('a')[0].href.match(/id=(\d+)$/)[1];
 }
+
+// custom CSS for script; injected into page
 var injectedcss = [
     'span.hptext { font-size: xx-small; color: #ff0099; }',
     'span.hptext2 { font-size: xx-small; color: black; }',
@@ -134,42 +150,29 @@ var injectedcss = [
     'input.liblink { background: none; border: none; color: white; text-decoration: underline; cursor: pointer; margin: 0; padding: 0; display: inline; }',
     'span.char { white-space: nowrap; }'
     ];
+// now inject CSS
 addGlobalStyle(injectedcss);
+
 
 //#############################################################################
 // tweak 0: highlight shadows from outside buildings
 function showhilights() {
-    var locSnapshot, desc, descString, descdiv, descmatch, lights, shadows, puforms, targetdesc, pucount, sanitycheck;
+    var locSnapShot, desc, descString, descdiv, descMatch, puforms, targetdesc, pucount;
     locSnapShot = document.evaluate("//td[@valign='top']/b/u", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-    if (locSnapShot.snapshotLength === 0) { return; }
+
+    if (locSnapShot.snapshotLength === 0) { return; } // sentinel exit condition; no location description to find
+
     desc = locSnapShot.snapshotItem(0).parentElement.nextElementSibling.nextElementSibling.nextSibling; //please don't cringe
+
+    // lights and shadows
     descString = desc.textContent;
     descdiv = document.createElement('div');
     descdiv.id = 'libdesc';
-    sanitycheck = descString.match(/(The lights are on inside the building|The building lights illuminate the area|The building windows are dark|The building lights are off|The lights inside the building appear to be off|The lights seem to be off throughout the neighorhood|The building is dark\. In fact, the lights seem to be off all throughout the neighorhood|The lights seem to be off throughout the neighorhood)|(There are several shadows moving in the windows|The occasional shadow can be glimpsed moving in the windows)/); // this is a hack to prevent unnecessary problem. I know.
-    descMatch = descString.match(/(([\s\S]+)?(The lights are on inside the building|The building lights illuminate the area|The building windows are dark|The building lights are off|The lights inside the building appear to be off|The lights seem to be off throughout the neighorhood|The building is dark\. In fact, the lights seem to be off all throughout the neighorhood|The lights seem to be off throughout the neighorhood))?(([\s\S]+)?(There are several shadows moving in the windows|The occasional shadow can be glimpsed moving in the windows))?([\s\S]+)/); //2: first chunk. 3: lights. 4:toss. 5: middle 6: shadows. 7: last chunk
-    if (sanitycheck && descMatch) {
-        descdiv.appendChild(document.createTextNode(descMatch[2]));
-        if (descMatch[3]) {
-            lights = document.createElement('span');
-            if (getSetting('hilights-extra-lights') == 'true') {
-                if (descMatch[3].match(/(The lights are on inside the building|The building lights illuminate the area)/)) { lights.className = 'liblights'; }
-                else if (descMatch[3].match(/(The building windows are dark|The building lights are off|The lights inside the building appear to be off|The lights seem to be off throughout the neighorhood|The building is dark\. In fact, the lights seem to be off all throughout the neighorhood|The lights seem to be off throughout the neighorhood)/)) { lights.className = 'liblightsoff'; }
-            }
-            lights.appendChild(document.createTextNode(descMatch[3]));
-            descdiv.appendChild(lights);
-        }
-        if (descMatch[5]) { descdiv.appendChild(document.createTextNode(descMatch[5])); }
-        if (descMatch[6]) {
-            shadows = document.createElement('span');
-            if (getSetting('hilights-extra-shadow') == 'true') { shadows.className = 'libshadows'; }
-            shadows.appendChild(document.createTextNode(descMatch[6]));
-            descdiv.appendChild(shadows);
-        }
-        descdiv.appendChild(document.createTextNode(descMatch[7]));
-    } else {
-        descdiv.appendChild(document.createTextNode(descString));
-    }
+    descMatch = descString.match(/(([\s\S]+)?(The lights are on inside the building|The building lights illuminate the area|The building windows are dark|The building lights are off|The lights inside the building appear to be off|The lights seem to be off throughout the neighorhood|The building is dark\. In fact, the lights seem to be off all throughout the neighorhood|The lights seem to be off throughout the neighorhood))?(([\s\S]+)?(There are several shadows moving in the windows|The occasional shadow can be glimpsed moving in the windows))?([\s\S]+)/);
+    if (descMatch) { desctextmatches(descdiv, descMatch); }
+    else { descdiv.appendChild(document.createTextNode(descString)); } // if no match, just put the string back where it was
+    
+    // targets/items set up in location
     if (getSetting('hilights-extra-targets') == 'true') { //try to add number of targets
         puforms = document.evaluate("//form[@name='pickup']", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
         targetdesc = document.createElement('span');
@@ -179,116 +182,191 @@ function showhilights() {
             if (pucount == 1) { targetdesc.appendChild(document.createTextNode(' There is an item on the floor.'));
             } else { targetdesc.appendChild(document.createTextNode(' There are '+pucount+' items on the floor.')); }
         }
-        descdiv.appendChild(targetdesc);
-    }
+    descdiv.appendChild(targetdesc);
     desc.parentNode.insertBefore(descdiv, desc);
-    desc.remove();
+    desc.remove(); // we copied things, remove (redundant) original
+    }
 }
+
+function desctextmatches(descdiv, descMatch) {
+    // boilerplate code for lights/shadows
+    var lights, shadows;
+
+    //descMatch group elements:
+        //2: firsttext 3: lightstatus 4:(toss) 5: middletext 6: shadowstatus 7: lasttext
+
+    descdiv.appendChild(document.createTextNode(descMatch[2])); // first text as node
+
+    // lights
+    if (descMatch[3]) {
+        lights = document.createElement('span');
+        // create span: if lights enabled, set light class to on/off; else just make it text
+        if (getSetting('hilights-extra-lights') == 'true') {
+            if (descMatch[3].match(/(The lights are on inside the building|The building lights illuminate the area)/)) {
+                lights.className = 'liblights';
+            }
+            else if (descMatch[3].match(/(The building windows are dark|The building lights are off|The lights inside the building appear to be off|The lights seem to be off throughout the neighorhood|The building is dark\. In fact, the lights seem to be off all throughout the neighorhood|The lights seem to be off throughout the neighorhood)/)) {
+                lights.className = 'liblightsoff';
+            }
+        }
+        lights.appendChild(document.createTextNode(descMatch[3]));
+        descdiv.appendChild(lights);
+    }
+
+    if (descMatch[5]) { descdiv.appendChild(document.createTextNode(descMatch[5])); } // middle text
+
+    // shadows
+    if (descMatch[6]) {
+        shadows = document.createElement('span');
+        if (getSetting('hilights-extra-shadow') == 'true') { shadows.className = 'libshadows'; }
+        shadows.appendChild(document.createTextNode(descMatch[6]));
+        descdiv.appendChild(shadows);
+    }
+
+    descdiv.appendChild(document.createTextNode(descMatch[7]));
+}
+
+
 //#############################################################################
 // tweak 1: sort people by alliances and health, print health
 function sortpeople() {
     var peoplematch = /There (is|are) (\d+) other (person|people) here, (.*?>)\./.exec(document.documentElement.getElementsByTagName('body')[0].innerHTML);
-    var ppl, p, p_type, sorttype, person, i, len, added, x, xlen, count, h, hptext, temp;
-    var sorts = ['normal', 'percent', 'total', 'level'];
-    var sort1 = getSetting('sortpeople-extra-sort1');
-    if (sorts.indexOf(sort1) == -1) { sort1 = 'normal'; }
-    setSetting('sortpeople-extra-sort1', sort1);
-    var sort2 = getSetting('sortpeople-extra-sort2');
-    if (sorts.indexOf(sort2) == -1) { sort2 = 'normal'; }
-    setSetting('sortpeople-extra-sort2', sort2);
+    var ppl, person, i, len, count, h;
+    var sorts = getSortTypes();
+    var sort1 = sorts[0], sort2 = sorts[1];
     var sortRev1 = (getSetting('sortpeople-extra-reverse1') == 'true');
     var sortRev2 = (getSetting('sortpeople-extra-reverse2') == 'true');
     var showhp = (getSetting('sortpeople-extra-showhp') == 'true');
-    var showpetmaster = (getSetting('sortpeople-extra-petmaster') == 'true');
     var allyneutral = (getSetting('sortpeople-extra-neutrals') == 'true');
+    var showpetmaster = (getSetting('sortpeople-extra-petmaster') == 'true');
+    var sortfield = {'total':'hp', 'percent':'hp_percent', 'downtotal':'hp_down', 'level':'level'};
     var people = [[],[]];
+    logLibC('sortpeople runtime: '+peoplematch[2], verbose=true);
     if (!peoplematch) { return; }
     if (peoplematch[2] !== 0) {
-    ppl = peoplematch[4].substring(1, peoplematch[4].length - 1).split('>, <');
-    len = ppl.length;
-    if (len != parseInt(peoplematch[2])) { console.log('LibC: Count fails to match peoplematch count'); return; }
-    for (i = 0; i < len; i++) {
-        p = /a class="(faction|ally|friendly|neutral|enemy|hostile)" href="javascript:SelectItem\('target_id','(\d+)'\)">(.+)<\/a> \(<a href="modules.php\?name=Game&amp;op=character&amp;id=\d+">(\d*)<\/a>\)(<img title="Hidden" (?:height="12" width="12" src="images\/g\/status\/Hiding.png"|src="images\/g\/status\/Hiding.png" height="12" width="12")>)?<img( title="(\d+)\/(\d+) hit points")?.+?src="images\/g\/HealthBar_([1-4]).gif"/.exec(ppl[i]);
-        if (p[1] == 'enemy' || p[1] == 'hostile') {
-            p_type = 0;
-        } else if (p[1] == 'neutral' && allyneutral === false) {
-            p_type = 0;
-        } else { p_type = 1; }
-        if (p_type === 0) { sorttype = sort1; }
-        else { sorttype = sort2; }
-        person = {};
-        person.html = ppl[i]; person.id = p[2]; person.level = p[4];
-        if (p[6]) {
-            if (sorttype == 'percent') { person.sort_hp = (parseInt(p[7])/parseInt(p[8])) * 100; }
-            else if (sorttype == 'level') { person.sort_hp = (parseInt(p[4])); }
-            else { person.sort_hp = parseInt(p[7]); }
-            person.down_hp = (parseInt(p[8])-parseInt(p[7]));
-            person.real_hp = parseInt(p[7]);
-        } else { person.sort_hp = 4 - parseInt(p[9]); }
-        if (!people.hasOwnProperty(p_type)) {
-            people[p_type] = [];
-            people[p_type].push(person);
+        ppl = peoplematch[4].substring(1, peoplematch[4].length - 1).split('>, <');
+        len = ppl.length;
+        if (len != parseInt(peoplematch[2])) { logLibC('LibC: Count fails to match peoplematch count'); return; }
+        for (i = 0; i < len; i++) {
+            person = createSortPerson(ppl[i], allyneutral);
+            if (person['sorttype'] === 0) { people[0].push(person); }
+            else { people[1].push(person); }
+        }
+    
+        // sort people here
+        if ( sortfield.hasOwnProperty(sort1) ) {
+            people[0].sort( sort_by( sortfield[sort1], sortRev1) );
+        }
+        // implicit else: don't sort, already in alphabetical order
+        if ( sortfield.hasOwnProperty(sort2) ) {
+            people[1].sort( sort_by( sortfield[sort2], sortRev2) );
+        } // again implied else --> don't sort
+    
+        // now format for display
+        count = (people[0].length + people[1].length);
+        if (count != parseInt(peoplematch[2])) { logLibC('LibC: Count fails to match peoplematch count'); return; } // just in case
+        if (count == 1) {
+            h = '<p id="chars_desc">There is 1 other person here.</p>\n';
         } else {
-            added = false;
-            if (sorttype != 'normal') {
-                xlen = people[p_type].length;
-                for (x = 0; x < xlen; x++) {
-                    if (people[p_type][x].sort_hp > person.sort_hp) {
-                        people[p_type].splice(x, 0, person);
-                        added = true;
-                        break;
-                    }
-                }
-            }
-            if (!added) { people[p_type].push(person); }
+            h = '<p id="chars_desc">There are ' + count + ' other people here.</p>\n';
         }
+    
+        h += createSortedPeopleHTML(people[0], 'victims', showhp);
+        h += createSortedPeopleHTML(people[1], 'friends', showhp);
+    
+        h = '<div id="other_chars">' + h + '</div>';
+        document.documentElement.innerHTML = document.documentElement.innerHTML.replace(peoplematch[0], h);
     }
-    count = (people[0].length + people[1].length);
-    if (count != parseInt(peoplematch[2])) { console.log('LibC: Count fails to match peoplematch count'); return; }
-    if (count == 1) {
-        h = '<p id="chars_desc">There is 1 other person here.</p>\n';
-    } else {
-        h = '<p id="chars_desc">There are ' + count + ' other people here.</p>\n';
-    }
-    len = people[0].length;
-    if (len > 0) {
-        if (sortRev1) { people[0].reverse(); }
-        h += '<p id="victims">';
-        for (i = 0; i < len; i++) {
-            temp = people[0][i];
-            hptext = '';
-            if (showhp) {
-                if (temp.down_hp === 0) { hptext = '<span class=hptext2>'; }
-                else { hptext = '<span class=hptext>'; }
-                if (temp.real_hp) { hptext += '+' + temp.real_hp; }
-                if (temp.down_hp > 0) { hptext += '-' + temp.down_hp; }
-            }
-            h += '<span class="char" id="char_' + temp.id + '"><' + temp.html + '>' + hptext + '</span></span>, ';
-        }
-        h = h.substring(0, h.length - 2) + '.</p>';
-    }
-    len = people[1].length;
-    if (len > 0) {
-        if (sortRev2) { people[1].reverse(); }
-        h += '<p id="friends">';
-        for (i = 0; i < len; i++) {
-            temp = people[1][i];
-            hptext = '';
-            if (showhp) {
-                if (temp.down_hp === 0) { hptext = '<span class=hptext2>'; }
-                else { hptext = '<span class=hptext>'; }
-                if (temp.real_hp) { hptext += '+' + temp.real_hp; }
-                if (temp.down_hp > 0) { hptext += '-' + temp.down_hp; }
-            }
-            h += '<span class="char" id="char_' + temp.id + '"><' + temp.html + '>' + hptext + '</span></span>, ';
-        }
-        h = h.substring(0, h.length - 2) + '.</p>';
-    }
-    h = '<div id="other_chars">' + h + '</div>';
-    document.documentElement.innerHTML = document.documentElement.innerHTML.replace(peoplematch[0], h);
+
+    // Optional showpetmaster trigger
     if (showpetmaster) { petmaster(); }
+}
+
+function createSortedPeopleHTML(people, id, showhp) {
+    var retHTML = '<p id="'+id+'">';
+    var len = people.length, i;
+    if (len === 0) { return ''; } // catch for no people
+    for (i = 0; i < len; i++) {
+        retHTML += createSortedPersonHTML(people[i],showhp);
+    }
+    return retHTML.substring(0, retHTML.length - 2) + '.</p>'; // remove the trailing joiner and replace with close of par
+}
+
+function createSortedPersonHTML(person, showhp) {
+    var hptext = '';
+    if (showhp && person['hp_visible']) {
+        hptext = (person['hp_down'] === 0) ? '<span class=hptext2>' : '<span class=hptext>';
+        hptext += '+' + person['hp'];
+        if (person['hp_down'] > 0) { hptext += '-' + person['hp_down']; }
+    }
+    return '<span class="char" id="char_' + person['id'] + '"><' + person['html'] + '>' + hptext + '</span></span>, ';
+}
+
+function getSortTypes() {
+    var sort1 = getSortSingle( getSetting('sortpeople-extra-sort1') ),
+        sort2 = getSortSingle( getSetting('sortpeople-extra-sort2') );
+    setSetting('sortpeople-extra-sort1', sort1);
+    setSetting('sortpeople-extra-sort2', sort2);
+    return [sort1,sort2];
+}
+
+function getSortSingle(sortStr) {
+    var sorts = ['normal', 'percent', 'total', 'downtotal', 'level']; // valid types of sorts; normal is alphabetical
+    if (sorts.indexOf(sortStr) == -1) { return 'normal'; }
+    return sortStr
+}
+
+function createSortPerson(ppl, allyneutral) {
+    // creates an object of the character from the html
+    var retPerson = { 'hp':0,'hp_down':0 }; // defaults
+    var p = /a class="(faction|ally|friendly|neutral|enemy|hostile)" href="javascript:SelectItem\('target_id','(\d+)'\)">(.+)<\/a> \(<a href="modules.php\?name=Game&amp;op=character&amp;id=\d+">(\d*)<\/a>\)(<img title="Hidden" (?:height="12" width="12" src="images\/g\/status\/Hiding.^ png"|src="images\/g\/status\/Hiding.png" height="12" width="12")>)?<img( title="(\d+)\/(\d+) hit points")?.+?src="images\/g\/HealthBar_([1-4]).gif"/.exec(ppl);
+    // ^ this is the magic to match a person ^
+
+    if (p[1] == 'enemy' || p[1] == 'hostile') {
+        retPerson['sorttype'] = 0;
+    }
+    else if (p[1] == 'neutral' && allyneutral === false) {
+        retPerson['sorttype'] = 0;
+    }
+    else {
+        retPerson['sorttype'] = 1;
+    }
+    retPerson['politics'] = p[1]; // specific info for later scripting expansion
+    retPerson['html'] = ppl;
+    retPerson['id'] = p[2];
+    retPerson['level'] = p[4];
+    
+    if (p[6]) {
+        // if char has first aid and can see hp vals
+        retPerson['hp_visible'] = true;
+        retPerson['hp'] = parseInt(p[7]);
+        retPerson['hp_down'] = (parseInt(p[8])-parseInt(p[7]));
+        retPerson['hp_percent'] = (parseInt(p[7])/parseInt(p[8])) * 100;
+    } else {
+        // char doesn't have first aid; only sees 10,11-50,51-99,100% hp totals
+        retPerson['hp_visible'] = false;
+        switch (parseInt(p[9])) {
+            case 1:
+                retPerson['hp_percent'] = 100; break;
+            case 2:
+                retPerson['hp_percent'] = 99; break;
+            case 3:
+                retPerson['hp_percent'] = 50; break;
+            case 4:
+                retPerson['hp_percent'] = 10; break;
+        }
+    }
+    return retPerson;
+}
+
+var sort_by = function(field, reverse=false) {
+    var key = function (obj) { return obj[field] };
+    return function(a, b) {
+        var A = key(a), B = key(b);
+        return ( (A < B) ? -1 : ((A > B) ? 1 : 0) ) * [1,-1][+!!reverse];
     }
 }
+
 function petmaster() {
     var characters = document.evaluate("//span[@class='char']", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
     if (characters.snapshotLength === 0) { return; }
@@ -300,6 +378,7 @@ function petmaster() {
         eachchar.addEventListener('mouseout', eunhighlightpet);
     }
 }
+
 function ehighlightpet(e) {
     var charname = e.target.textContent.replace(/\s$/g, ''); //rtrim
     var searchstring = "Master: " + charname;
@@ -310,6 +389,7 @@ function ehighlightpet(e) {
     if (len >= 1) { e.target.title = String(len) + " Pets"; }
     for (i = 0; i < len; i++) { theirpets.snapshotItem(i).style.color = 'blue'; }
 }
+
 function eunhighlightpet(e) {
     var charname = e.target.textContent.replace(/\s$/g, '');
     var searchstring = "Master: " + charname;
@@ -319,6 +399,8 @@ function eunhighlightpet(e) {
     len = theirpets.snapshotLength;
     for (i = 0; i < len; i++) { theirpets.snapshotItem(i).style.color = ''; }
 }
+
+
 //#############################################################################
 // tweak 2: Button Safeties
 function hiddentoggle(e) {
@@ -326,11 +408,13 @@ function hiddentoggle(e) {
     if (e.target.checked) { targetbutton.style.visibility = 'visible'; }
     else { targetbutton.style.visibility = 'hidden'; }
 }
+
 function disabletoggle(e) {
     var targetbutton = e.target.nextElementSibling;
     if (e.target.checked) { targetbutton.disabled = false; }
     else { targetbutton.disabled = true; }
 }
+
 function createDisableButton(btn) {
     if (!btn.hasAttribute('confirmflag')) {
         btn.setAttribute('confirmflag', 1);
@@ -342,6 +426,7 @@ function createDisableButton(btn) {
         btn.disabled = true;
     }
 }
+
 function createHiddenButton(btn) {
     if (!btn.hasAttribute('confirmflag')) {
         btn.setAttribute('confirmflag', 1);
@@ -355,6 +440,7 @@ function createHiddenButton(btn) {
         btn.style.visibility = 'hidden';
     }
 }
+
 function safebuttons() {
     var loc = location + '';
     if (!charinfoid && getGlobalSetting('safebuttons') == 'true') {
@@ -369,6 +455,7 @@ function safebuttons() {
         if (getSetting('safety-extra-speech') == 'true') { safebuttons_speech(); }
     }
 }
+
 function safetyButtons(xPathStr, operation) {
     var buttons, elementButton, len, i;
     buttons = document.evaluate(xPathStr, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -380,11 +467,13 @@ function safetyButtons(xPathStr, operation) {
         else if (operation == 'hide') { createHiddenButton(elementButton); }
     }
 }
+
 function enableSpeechForm(e) {
     var button = e.target.previousElementSibling;
-    if (e.target.value != '') { button.disabled = false; }
+    if (e.target.value !== '') { button.disabled = false; }
     else { button.disabled = true; }
 }
+
 function safebuttons_speech() {
     var form, temp, len, i;
     form = document.evaluate("//form[@name='speak' or @name='bullhorn']/input[@type='submit']", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -397,6 +486,8 @@ function safebuttons_speech() {
         temp.snapshotItem(0).addEventListener('input', enableSpeechForm, false);
     }
 }
+
+
 //#############################################################################
 // tweak 3: Thin Bars for Full Health and Mana
 function tweakbars() {
@@ -408,13 +499,14 @@ function tweakbars() {
     len = manabarimages.snapshotLength;
     for (i = 0; i < len; i++) { manabarimages.snapshotItem(i).width = '2'; }
 }
+
+
 //#############################################################################
 // tweak 4: Color Message History (and make message box bigger and resizable)
 function messagehistory() {
     var messages = document.getElementById('Messages');
     if (!messages) { return; }
-    var loc = location + '';
-    var i, len, mm, j, lenm;
+    var loc = location + '', i, len, mm, j, lenm, ret_val;
     var mhistory = messages.previousElementSibling;
     if (mhistory && !(mhistory.innerHTML.match(/This Week/))) {
         if ((loc.match(/name=Game(&op=connect)?$/)) && (timesCharExist(messages.innerHTML, '\n') > 13)) { messages.style.height = '250px'; }
@@ -435,7 +527,10 @@ function messagehistory() {
     }
 messages.innerHTML = alonglist.join('');
 }
+
 function messagematchers() {
+    // generates a list of message matchers and returns it
+    // list of objects of trace {m:MATCH EXPRESSION, o:OPERATION, e:EXTRA(padding/other)}
     var mm = [
         {m:/(- (\(\d+ times\) )?You attack .* with your .* and hit for .* damage\..*)<br>/, o:'p', e:'MageAttackHit'},
         {m:/(- (\(\d+ times\) )?You attack the (door|ward|fortifications) with .+)<br>/, o:'p', e:'libfort'},
@@ -485,6 +580,7 @@ function messagematchers() {
         ];
         return mm;
 }
+
 function messagereplacer(liststring, match, operation, extra) {
     if (liststring.match(match)) { //operation 'p' for 'padding' the message with a div of class $extra, operation 'r' for 'replacing' a string with $extra
         if (operation == 'p') { liststring = "<div class='"+extra+"'>"+liststring+"</div>"; }
@@ -493,31 +589,46 @@ function messagereplacer(liststring, match, operation, extra) {
     }
     return false;
 }
+
+
 //#############################################################################
 // tweak 5: Tweak the weapon selection to print Raw DPA and shorten details
+
+// display damage per action
 function wpSDPA (option) {
     var test = option.innerHTML.match(/(\d+) dmg[^0-9]*(-?\d+)% to hit$/);
     if (test) { option.innerHTML += '(dpa:'+test[1]*Math.min(Math.max(test[2],1),99)/100+')'; }
 }
+
+// display shorter damage/to-hit chance
 function wpSDMG (option) {
     if (option.innerHTML.match(/ - (\d+) dmg.?, (\d+)% to hit/)) { option.innerHTML = option.innerHTML.replace(/ - (\d+) dmg.?, (\d+)% to hit/, '-$1/$2%'); }
 }
+
+// display shortened shot amounts
 function wpSSHOTS (option) {
     if (option.innerHTML.match(/\((\d+) shots\)/)) { option.innerHTML = option.innerHTML.replace(/\((\d+) shots\)/, '\($1s\)'); }
 }
+
+// display shortened spellgem names (and special touch attacks?)
 function wpSGEM (option) {
     if (option.innerHTML.match(/^Spellgem/)) { option.innerHTML = option.innerHTML.replace(/^Spellgem/, 'Gem'); }
     if (option.innerHTML.match(/(-( 0 dmg| ), -?(\d+)% to hit$)/)) { option.innerHTML = option.innerHTML.replace(/(-( [0-5] dmg| ), -?(\d+)% to hit$)/, ''); }
     if (option.innerHTML.match(/(Glyph of )/)) { option.innerHTML = option.innerHTML.replace(/(Glyph of )/, ''); }
 }
+
+// display shortened weapon quality
 function wpSQUAL (option) {
     var qualityLevel = {'pristine':'+Q5+', 'good':'+Q4+', 'average':'=Q3=', 'worn':'-Q2-', 'broken':'-Q1-', 'destroyed':'-Q0-'};
     var test = option.innerHTML.match(/ \((pristine|good|average|worn|broken|destroyed)\) /);
-    if (test) { option.innerHTML = option.innerHTML.replace(/ \((pristine|good|average|worn|broken|destroyed)\) /, qualityLevel[test[1]]) }
+    if (test) { option.innerHTML = option.innerHTML.replace(/ \((pristine|good|average|worn|broken|destroyed)\) /, qualityLevel[test[1]]); }
 }
+
+// display shortened enchant/magical status
 function wpSMAG (option) {
     if (option.innerHTML.match(/\((magical|enchanted)\)/)) { option.innerHTML = option.innerHTML.replace(/\((magical|enchanted)\)/, '(mag)'); }
 }
+
 function weaponpane() {
     var weaponboxes = document.evaluate("//select[@name='attacking_with_item_id']", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
     if (weaponboxes.snapshotLength < 1) { return; }
@@ -543,10 +654,12 @@ function weaponpane() {
         }
     }
 }
+
+
 //#############################################################################
 // tweak 6: Default Item Pickup to Weapons
 function pickupdefaults() {
-    var i, len, temp, puforms, puform, pubox, puboxopt, matchtype, pnum, indexArray = [], matchers = ['drink','food','rock','knife','hatchet','misc','null'], priorities = [];
+    var i, len, temp, puforms, puform, pubox, puboxopt, pnum, indexArray = [], matchers = ['drink','food','rock','knife','hatchet','misc','null'], priorities = [];
     var drinkmatch = /(.+, a(n)? )?(Bottle of .+|Absinthe|Vial of .+)/;
     var foodmatch = /(.+, a(n)? )?(Can of .+|Cup of .+|Apple)/;
     var rockmatch = /(.+, a(n)? )?Rock/;
@@ -585,10 +698,12 @@ function pickupdefaults() {
         }
     }
 }
+
+
 //#############################################################################
 // tweak 7: Warning Headers
 function warningheaders() {
-    if (!charinfodiv) { return; }
+    if (!charinfodiv) { return; } // need char info, else quit
     var firstfont = charinfodiv.getElementsByTagName('font')[0], secondfont = charinfodiv.getElementsByTagName('font')[1], thirdfont = charinfodiv.getElementsByTagName('font')[2], panetitles = document.getElementsByClassName('panetitle');
     var headercolor = '', headertitle = '';
     var i, len, temp, moves, lowAP, lowHP;
@@ -598,6 +713,8 @@ function warningheaders() {
     lowHP = 30; //defaults
     if (isNormalInteger(getSetting('warnheaders-extra-hp'))) { lowHP = parseInt(getSetting('warnheaders-extra-hp')); }
     setSetting('warnheaders-extra-hp', lowHP);
+
+    // character/login pane: charinfodiv
     if (Number(secondfont.innerHTML.match(/\d+/)) < lowHP) {
         secondfont.parentNode.style.border = '3px solid crimson';
         secondfont.parentNode.parentNode.parentNode.parentNode.style.border = '2px solid crimson';
@@ -610,11 +727,15 @@ function warningheaders() {
         firstfont.parentNode.parentNode.title = 'LOW AP';
         headercolor = 'gold'; headertitle = 'LOW AP';
     }
+
+    // the headers/spacers between different game sections
     len = panetitles.length;
     for (i = 0; i < len; i++) {
         temp = panetitles[i];
         temp.style.color = headercolor; temp.title = headertitle;
     }
+
+    // move buttons
     if (headertitle && getSetting('warnheaders-extra-move') == 'true') {
         moves = document.getElementsByName('move');
         len = moves.length;
@@ -624,14 +745,18 @@ function warningheaders() {
         }
     }
 }
+
+
 //#############################################################################
 // tweak 8: Save Forms
 function safestore(name, path) {
-    var select = document.evaluate(path, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-    if (select.snapshotLength === 0) { return; }
-    var value = select.snapshotItem(0).options[select.snapshotItem(0).selectedIndex].value;
+    var selects = document.evaluate(path, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null), select;
+    if (selects.snapshotLength === 0) { return; }
+    select = selects.snapshotItem(0);
+    var value = select.options[select.selectedIndex].value;
     if (value) { setSetting('store-'+name, value); }
 }
+
 function rememberForm(name, path, selname) {
     var select = document.evaluate(path, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
     var len = select.snapshotLength;
@@ -641,14 +766,15 @@ function rememberForm(name, path, selname) {
         sel = select.snapshotItem(i);
         button = document.evaluate("input[@type='submit']", sel.parentNode, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null).snapshotItem(0);
         button.addEventListener('click', function(e) { var sele = e.target.parentNode[selname]; setSetting('store-'+name, sele.options[sele.selectedIndex].value); }, true);
-        if (value === null) { continue; }
+        if (value === null) { continue; } // fall through: no vals defined
         options = sel.options;
         jlen = options.length;
         for (j = 0; j < jlen; j++) { //only if we have a value to search for
-            if (options[j].value == value) { sel.selectedIndex = j; break; }
+            if (options[j].value === value) { sel.selectedIndex = j; break; }
         }
     }
 }
+
 function saveForms() {
     var refresh = document.evaluate("//li[@class='topmenu']/a[text()='Game Map']", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
     var i, len, name, path;
@@ -658,38 +784,47 @@ function saveForms() {
         ['precision', "//select[@name='clockwork_precision']", 'clockwork_precision'],
         ['prayer', "//select[@name='prayertype']", 'prayertype'],
         ['repair', "//form[@name='repair']/select[@name='item']", 'item']
-    ]
+    ];
     len = forms.length;
     for (i = 0; i < len; i++) {
-        if (getSetting('saveform-extra-'+forms[i][0]) != 'true') { continue; }
+        if (getSetting('saveform-extra-'+forms[i][0]) != 'true') { continue; } // skip if disabled
         name = forms[i][0]; path = forms[i][1];
         rememberForm(name, path, forms[i][2]);
-        if (refresh.snapshotLength != 0) { refresh.snapshotItem(0).addEventListener('click', function() { safestore(name, path); }, true); }
+        if (refresh.snapshotLength !== 0) {
+            refresh.snapshotItem(0).addEventListener('click', function(n,p) { return function() { safestore(n, p); }; }(name,path), true);
+        }
     }
 }
+
+
 //#############################################################################
 // tweak 9: Pet Interface Overhaul
 function processPetTable() {
-    var tick = getTick(),  minPet = null, minPet2 = null, len;
-    var petRows = document.evaluate("//tr[td[@title='Rename Pet']]", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-    petCountSurplus = (getSetting('pettweak-extra-surplus') == 'true');
-    petAPLow = 8; //defaults
+    var tick = getTick(),  minPet = null, minPet2 = null, len,
+        petRows = document.evaluate("//tr[td[@title='Rename Pet']]", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null),
+        retPets; //defaults
+
+    // GLOBALS
+    petCountSurplus = (getSetting('pettweak-extra-surplus') == 'true'), petAPLow = 8, petAPMid = 20;
+
+    // hack to set default if unset
     if (isNormalInteger(getSetting('pettweak-extra-ap-low'))) { petAPLow = parseInt(getSetting('pettweak-extra-ap-low')); }
-    setSetting('pettweak-extra-ap-low', petAPLow); //hack to set default if unset
-    petAPMid = 20;
+    setSetting('pettweak-extra-ap-low', petAPLow);
     if (isNormalInteger(getSetting('pettweak-extra-ap-mid'))) { petAPMid = parseInt(getSetting('pettweak-extra-ap-mid')); }
     setSetting('pettweak-extra-ap-mid', petAPMid);
     if (petRows.snapshotLength === 0) { return; }
+
     len = petRows.snapshotLength;
     for (var i = 0; i < len; i++) {
         var row = petRows.snapshotItem(i);
         if (i === 0) { modifyTable(row); }
-        retPets = processRow(row, tick, minPet, minPet2);
+        retPets = processRow(row, tick, minPet, minPet2, petCountSurplus);
         minPet = retPets[0]; minPet2 = retPets[1];
     }
     minPet.Row.setAttribute('class', minPet.Row.getAttribute('class') + ' petstatus-nextpet');
     if (minPet2 !== null) { minPet2.Row.setAttribute('class', minPet2.Row.getAttribute('class') + ' petstatus-nextpet2'); }
 }
+
 function processRow(row, tick, minPet, minPet2) {
     var ap = parseInt(row.cells[2].innerHTML), mp = parseInt(row.cells[3].innerHTML), hp = parseInt(row.cells[4].innerHTML);
     if (minPet === null || ap < minPet.AP || (ap == minPet.AP && mp < minPet.MP) || (ap == minPet.AP && mp == minPet.MP && hp < minPet.HP)) { minPet2 = minPet; minPet = { AP:ap, MP:mp, HP:hp, Row:row }; } //stomp through, finding pet with lowest ap, with tie breakers mp and finally hp
@@ -699,7 +834,8 @@ function processRow(row, tick, minPet, minPet2) {
     modifyStanceForm(row);
     return [minPet, minPet2];
 }
-function displayDecayTime(row, ap, mp, tick, countSurplus) {
+
+function displayDecayTime(row, ap, mp, tick) {
     var timeEmpty = new Date(tick), temp = ap;
     if (petCountSurplus && ap > mp) { temp = (ap - mp); }
     timeEmpty.setMinutes(tick.getMinutes() + (temp * 15));
@@ -707,13 +843,15 @@ function displayDecayTime(row, ap, mp, tick, countSurplus) {
     row.cells[7].innerHTML = String(temp / 4)+'h';
     row.cells[7].title = 'Local: ' + timeEmpty.toTimeString().substring(0,5);
 }
+
 function modifyTable(row) {
     var table = row.parentNode.parentNode;
     table.style.width = table.offsetWidth - 4;
     table.rows[1].insertCell(7);
     table.rows[1].cells[7].innerHTML = 'Decay';
 }
-function setRowClass(row, ap, mp, countSurplus) {
+
+function setRowClass(row, ap, mp) {
     var rowClass = '', temp = ap;
     if (petCountSurplus) { temp = (ap - mp); }
     if (ap < mp) { rowClass += ' petstatus-mpsurplus'; }
@@ -721,18 +859,22 @@ function setRowClass(row, ap, mp, countSurplus) {
     else if (temp <= petAPMid) { rowClass += ' petstatus-aplow'; }
     row.setAttribute('class', rowClass);
 }
+
 function modifyStanceForm(row) {
     var stanceSubmit = document.evaluate(".//input[@type='submit']", row.cells[5], null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null).snapshotItem(0);
     stanceSubmit.style.display = 'none';
     var stanceSelect = document.evaluate('.//select',row.cells[5],null,XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,null).snapshotItem(0);
     stanceSelect.onchange = function() { this.form.submit(); };
 }
+
 function getTick() {
     var tick = new Date();
     tick.setMinutes(tick.getMinutes() - (tick.getMinutes() % 15));
     tick.setSeconds(0);
     return tick;
 }
+
+
 //#############################################################################
 // tweak 10: Alchemy Interface Overhaul
 function alchemytweak() {
@@ -764,6 +906,7 @@ function alchemytweak() {
         setToggleListeners();
     }
 }
+
 function parseRecipes(character, recipePane) {
     var complete = [], partial = [], empty = [], i, htmltable;
     var recipes = recipePane.innerHTML.split('<br>');
@@ -787,6 +930,7 @@ function parseRecipes(character, recipePane) {
     htmltable += '</table>';
     recipePane.innerHTML = htmltable;
 }
+
 function createHelpRow(name, title, helpString) {
     var rowClass, helpRow, fullDisplay = 'none', summaryDisplay = 'table-row';
     if (getSetting('alchemy-toggle-' + name + 'help') == 'full') { fullDisplay = 'table-row'; summaryDisplay = 'none'; }
@@ -795,12 +939,13 @@ function createHelpRow(name, title, helpString) {
     helpRow += "<tr id='recipe-"+name+"help-summary' class='" + rowClass + "' style='display:" + summaryDisplay + "'><td valign='top' class='recipename'><a class='toggleLink' id='toggle-"+name+"help-summary'><img src='http://nexusclash.com/images/g/inf/open.gif'/></a>H:"+title+"</td></tr>";
     return helpRow;
 }
+
 function createComponentHelper() {
     var cRow, rowClass, fullDisplay = 'none', summaryDisplay = 'table-row', comp, cString, cssClass, safeRetrieve, count;
     if (getSetting('alchemy-toggle-componentshelp') == 'full') { fullDisplay = 'table-row'; summaryDisplay = 'none'; }
     rowClass = 'recipe-partial completionlevel-short'; cString = '';
     for (comp in components[character.Class]) {
-        if (!components[character.Class].hasOwnProperty(comp)) { pass; }
+        if (!components[character.Class].hasOwnProperty(comp)) { continue; }
         safeRetrieve = null, count = '';
         cssClass = 'component-' + components[character.Class][comp];
         if (safeItems[comp]) {
@@ -814,8 +959,9 @@ function createComponentHelper() {
     cRow += "<tr id='recipe-componentshelp-summary' class='" + rowClass + "' style='display:" + summaryDisplay + "'><td valign='top' class='recipename'><a class='toggleLink' id='toggle-componentshelp-summary'><img src='http://nexusclash.com/images/g/inf/open.gif'/></a>Comp Dict</td></tr>";
     return cRow;
 }
+
 function formatRecipe(recipe, rowClass) {
-    var i, len, completionLevel = 'inventory', componentString = '', buttonHtml = '', potionName = '', componentList, recipeComponents, componentCount = 0, inventoryCount = 0, safeCount = 0, preserved = 'saved', safeRetrieve = '', safeRetrieveType = '', safeRetrieveForm = '', safePotionCountSpan = '', safePotionCountShort = '', safePotionCount, retform = '<br>', placeform = '', fullDisplay = 'table-row', summaryDisplay = 'none', shortName;
+    var i, len, completionLevel = 'inventory', componentString = '', buttonHtml = '', potionName = '', componentList, recipeComponents, componentCount = 0, inventoryCount = 0, safeCount = 0, preserved = 'saved', safeRetrieve = '', safeRetrieveType = '', safeRetrieveForm = '', safePotionCountSpan = '', safePotionCountShort = '', safePotionCount, retform = '<br>', placeform = '', fullDisplay = 'table-row', summaryDisplay = 'none', shortName, cssClass, component, count, potRetVal, potRetType;
     var empty = (rowClass == 'recipe-empty'), partial = (rowClass == 'recipe-partial');
     recipe = recipe.replace(/,? *(in)?complete$/, '');
     var recipeMatch = recipe.match(/^.*<b>(Potion of .+)<\/b> *(.*)$/);
@@ -826,20 +972,20 @@ function formatRecipe(recipe, rowClass) {
     len = recipeComponents.length;
     for (i = 0; i < len; i++) {
         safeRetrieve = '', safeRetrieveForm = '', safeRetrieveType = '';
-        var count = parseInt(recipeComponents[i].match(/\(x(\d+)\)/)[1]);
+        count = parseInt(recipeComponents[i].match(/\(x(\d+)\)/)[1]);
         if (count > 1) { preserved = '-count'; }
-        var component = recipeComponents[i].replace(/ \(x\d+\)$/, '');
-        var cssClass = 'component-' + components[character.Class][component];
+        component = recipeComponents[i].replace(/ \(x\d+\)$/, '');
+        cssClass = 'component-' + components[character.Class][component];
         componentCount += count;
         if (inventoryItems[component]) {
             inventoryCount += count;
             if (!alchemySuppressHilight) { cssClass += ' match-inventory'; } //if suppress is false, then add the css class for matching
-        } else if (safeItems[component] && safeItems[component]['count'] >= count) {
+        } else if (safeItems[component] && safeItems[component].count >= count) {
             if (!alchemySuppressHilight) {cssClass += ' match-safe'; } //likewise
             safeCount += count; safeRetrieve = getSafeItem(component);
             if (completionLevel == 'inventory') { completionLevel = 'safe'; }
         } else {
-            if (safeItems[component]) { safeCount += safeItems[component]['count']; }
+            if (safeItems[component]) { safeCount += safeItems[component].count; }
             safeRetrieve = getSafeItem(component); completionLevel = 'short';
         }
         safeRetrieveType = safeRetrieve[1]; safeRetrieve = safeRetrieve[0];
@@ -857,7 +1003,7 @@ function formatRecipe(recipe, rowClass) {
     else if (recipeComponents &&  completionLevel == 'inventory') { buttonHtml = '<form name="alchemyknown" action="modules.php?name=Game&amp;op=alchemy" method="POST"><input type="hidden" name="potion" value="' + potionName + '"/><input type="submit" title="Brew Batch" value="-B-"/></form>'; }
     //show safe-stock
     if (alchemyShowCount && safeStatus > 0) {
-        if (safeItems[potionName]) { safePotionCount = safeItems[potionName]['count']; }
+        if (safeItems[potionName]) { safePotionCount = safeItems[potionName].count; }
         else { safePotionCount = 0; }
         if (safePotionCount === 0) { safePotionCountSpan = "<span class='safeEmpty'>"; }
         else if (safePotionCount < alchemyLowCount) { safePotionCountSpan = "<span class='safeLow'>"; }
@@ -870,7 +1016,7 @@ function formatRecipe(recipe, rowClass) {
     if (alchemySafeButton && safeStatus > 0) {
         potRetrieve = getSafeItem(potionName);
         invPlace = getInvItem(potionName);
-        if (potRetrieve[1] != '') {
+        if (potRetrieve[1] !== '') {
             potRetVal = potRetrieve[0]; potRetType = potRetrieve[1];
             retform = "<form name='footlockergrab' action='modules.php?name=Game&amp;op="+potRetType+"' method='POST' style='display:block'><input type='hidden' name='action' value='retrieve'><input type='hidden' name='item' value='"+potRetVal+"'><input type='submit' class='retrieveSafe' value='Retrieve "+potRetType+"'></form>";
         }
@@ -884,7 +1030,7 @@ function formatRecipe(recipe, rowClass) {
         componentString = "[<span class='component-fixed'>" + fixedComponents[potionName] + "</span>]";
     }
     if (partial && !componentString.match(fixedComponents[potionName].replace(/ /g, '&nbsp;'))) {
-        var cssClass = 'component-' + components[character.Class][fixedComponents[potionName]];
+        cssClass = 'component-' + components[character.Class][fixedComponents[potionName]];
         componentString = "[<span class='" + cssClass + " component-fixed'>" + fixedComponents[potionName] + "</span>]<br/>" + componentString;
     }
     rowClass += ' completionlevel-' + completionLevel;
@@ -903,18 +1049,21 @@ function formatRecipe(recipe, rowClass) {
     recipe += '</tr>';
     return recipe;
 }
+
 function getSafeItem(item) {
     var ret_id = '',  ret_type = '';
     if (safeItems[item]) {
-        if (safeItems[item]['safe']) { ret_id = safeItems[item]['safe']; ret_type = 'safe'; }
-        else if (safeItems[item]['footlocker']) { ret_id = safeItems[item]['footlocker']; ret_type = 'footlocker'; }
+        if (safeItems[item].safe) { ret_id = safeItems[item].safe; ret_type = 'safe'; }
+        else if (safeItems[item].footlocker) { ret_id = safeItems[item].footlocker; ret_type = 'footlocker'; }
     }
     return [ret_id, ret_type];
 }
+
 function getInvItem(item) {
-    if (inventoryItems[item]) { return inventoryItems[item]['value']; }
+    if (inventoryItems[item]) { return inventoryItems[item].value; }
     else { return ''; }
 }
+
 function parseSafeItems() {
     var items = [], len, i, j, safestatus, safeType, safeOptions, componentMatch, componentId, component, count, alchemyItems;
     var safe = document.evaluate("//form[@name='footlockergrab']", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -932,7 +1081,7 @@ function parseSafeItems() {
                 safeOptions.snapshotItem(i).className = 'safeitem-' + components[character.Class][component];
             }
             if (!items[component]) { items[component] = {}; }
-            if (!items[component]['count']) { items[component]['count'] = parseInt(count); }
+            if (!items[component].count) { items[component].count = parseInt(count); }
             items[component][safeType] = componentId;
         }
     }
@@ -943,6 +1092,7 @@ function parseSafeItems() {
     }
     return [items, safestatus];
 }
+
 function parseInventoryItems() {
     var items = [], len, i, component, value;
     var safeOptions = document.evaluate("//form[@name='safestock' or @name='alchemyresearch']/select[@name='item' or @name='itemid']/option",document,null,XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,null);
@@ -952,16 +1102,18 @@ function parseInventoryItems() {
         value = safeOptions.snapshotItem(i).value;
         if (components[character.Class][component]) { safeOptions.snapshotItem(i).className = 'safeitem-' + components[character.Class][component]; }
         if (!items[component]) { items[component] = {}; }
-        items[component]['count'] = 1; items[component]['value'] = value;
+        items[component].count = 1; items[component].value = value;
     }
     return items;
 }
+
 function parseCharacterInfo() {
     var character = {};
     character.Class = 'Sorcerer'; // = levelclassname; //bugged so that all classes have same corpus
     character.Id = charinfoid;
     return character;
 }
+
 function setToggle(characterId, recipe, toggleState) {
     setSetting('alchemy-toggle-' + recipe, toggleState);
     var summary = document.getElementById('recipe-' + recipe + '-summary');
@@ -969,6 +1121,7 @@ function setToggle(characterId, recipe, toggleState) {
     if (toggleState == 'summary') { full.style.display = 'none'; summary.style.display = 'table-row'; }
     else { full.style.display = 'table-row'; summary.style.display = 'none'; }
 }
+
 function setToggleListeners() {
     var len, i, link;
     var toggleLinks = document.evaluate("//a[@class='toggleLink']", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -978,12 +1131,14 @@ function setToggleListeners() {
         setToggleListener(link);
     }
 }
+
 function setToggleListener(link) {
     var linkMatch = link.id.match(/toggle-(.+)-(full|summary)/);
     var potion = linkMatch[1];
     var toggleType = linkMatch[2];
     link.addEventListener('click', function() { setToggle(character.Id, potion, (toggleType == 'full') ? 'summary' : 'full'); }, false);
 }
+
 function toggleAll(toggleState) {
     var len, i, link, linkMatch, potion;
     var toggleLinks = document.evaluate("//a[@class='toggleLink']", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -995,6 +1150,7 @@ function toggleAll(toggleState) {
         setToggle(character.Id, potion, toggleState);
     }
 }
+
 function setToggleAll(panetitle) {
     var open, close;
     open = document.createElement('input');
@@ -1006,6 +1162,7 @@ function setToggleAll(panetitle) {
     panetitle.appendChild(open);
     panetitle.appendChild(close);
 }
+
 function getComponentDictionary() {
     var components = {};
     components.Sorcerer = {}; //only sorceror components used in breath3
@@ -1044,6 +1201,7 @@ function getComponentDictionary() {
     components.Sorcerer['Stygian Bone Leech'] = 'common';
     return components;
 }
+
 function getShortNames() {
     var shortNames = {};
     shortNames['Acid Affinity'] = 'Acid';
@@ -1064,6 +1222,7 @@ function getShortNames() {
     shortNames['Water-Breathing'] = 'Wtr Brth';
     return shortNames;
 }
+
 function getFixedComponents() {
     var fixedComponents = {};
     fixedComponents['Extended Invisibility'] = 'Small Bottle of Gunpowder';
@@ -1088,6 +1247,8 @@ function getFixedComponents() {
     fixedComponents['Fire Affinity'] = 'Chunk of Brass';
     return fixedComponents;
 }
+
+
 //#############################################################################
 // tweak 11: Access Keys
 function addAccessKey(extra, evalstr) {
@@ -1098,6 +1259,7 @@ function addAccessKey(extra, evalstr) {
     setSetting('accesskeys-extra-'+extra, aKey);
     if (form.snapshotLength > 0) { form.snapshotItem(0).accessKey = aKey; }
 }
+
 function accesskeys() {
     if (getSetting('accesskeys-extra-heal') != 'null') { addAccessKey('heal', "//form/input[@name='heal_type']/../input[@type='submit']"); }
     if (getSetting('accesskeys-extra-fort') != 'null') { addAccessKey('fort', "//form[@name='fortificationattack']/input[@type='submit']"); }
@@ -1105,6 +1267,8 @@ function accesskeys() {
     if (getSetting('accesskeys-extra-door') != 'null') { addAccessKey('door', "//form[@name='doorenter']/input[@type='submit']"); }
     if (getSetting('accesskeys-extra-recap') != 'null') { addAccessKey('recap', "//form[@name='flag_retrieval']/input[@type='submit']"); }
 }
+
+
 //#############################################################################
 // tweak 12: Pet Targetting
 function pettarget() {
@@ -1117,14 +1281,15 @@ function pettarget() {
         local.href = "javascript:SelectItem('target_id'," + idnum + ")";
     }
 }
+
+
 //#############################################################################
 // tweak 13: Remove Gem Colours
 function removecolours() {
     var factionsafe = document.evaluate("//form[@name='footlockergrab']", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
     if (factionsafe.snapshotLength === 0) { return; }
-    var selElem = factionsafe.snapshotItem(0).lastElementChild;
-    var tmpAry = [], len, i;
-    var len = selElem.options.length;
+    var selElem = factionsafe.snapshotItem(0).lastElementChild,
+        tmpAry = [], len = selElem.options.length, i;
     for (i = 0; i < len; i++) {
         tmpAry[i] = [];
         tmpAry[i][0] = selElem.options[i].text.replace(/Small [A-Za-z]+ Gem -/,'Spellgem -');
@@ -1145,6 +1310,8 @@ function removecolours() {
         selElem.options[i].className = tmpAry[i][3];
     }
 }
+
+
 //#############################################################################
 // tweak 14: Faction Census
 function factioncensus() {
@@ -1152,7 +1319,7 @@ function factioncensus() {
     var ranks, census, ranksrow, rcell, rdiv;
     if (!loc.match(/faction&do=roster/)) { return; }
     ranks = document.evaluate("//table/tbody/tr[th='Character']/..", document, null,XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-    if (ranks.snapshotLength != 1) { console.log('lib: census failed to find ranks'); return; }
+    if (ranks.snapshotLength != 1) { logLibC('lib: census failed to find ranks'); return; }
     census = (ranks.snapshotItem(0).childElementCount - 1);
     if (census === 0) { return; }
     ranksrow = document.evaluate("//div/table/tbody/tr[td='Renown']", document, null,XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -1161,6 +1328,8 @@ function factioncensus() {
     rdiv.appendChild(document.createTextNode(census + ' Persons'));
     rcell.appendChild(rdiv);
 }
+
+
 //#############################################################################
 // tweak 15: Inventory Tweaks
 function invFastReload(invTBody) {
@@ -1172,6 +1341,7 @@ function invFastReload(invTBody) {
         invTBody.insertBefore(item, invTBody.firstElementChild.nextElementSibling.nextElementSibling.nextElementSibling);
     }
 }
+
 function invHideItems(invTBody) {
     var invHead, hidestate='table-row', len, i, hidebutton;
     invHead = document.evaluate("//th[starts-with(.,'Item')]", invTBody, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -1187,11 +1357,12 @@ function invHideItems(invTBody) {
     len = invTBody.children.length;
     for (i = 0; i < len; i++) {
         if (invTBody.children[i].children[3] && invTBody.children[i].children[3].textContent == '0' && document.evaluate("a[text()='Manabite']", invTBody.children[i].children[1], null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null).snapshotLength === 0) {
-            invTBody.children[i].className = 'libhideclothes'
+            invTBody.children[i].className = 'libhideclothes';
             invTBody.children[i].style.display = hidestate;
         }
     }
 }
+
 function invShortItems(invTBody) {
     var invHead, len, i, temp, test;
     var qualityLevel = {'pristine':'+Q5', 'good':'+Q4', 'average':'=Q3', 'worn':'-Q2', 'broken':'-Q1', 'destroyed':'-Q0'};
@@ -1200,19 +1371,30 @@ function invShortItems(invTBody) {
     if (len === 0) { return; }
     for (i = 0; i < len; i++) {
         temp = invHead.snapshotItem(i).children[0];
+        // shorter item names for classifications
         if (temp.innerHTML.match(/^(Bottle of|Bunch of|Can of|Chunk of|Dose of|Pair of|Piece of|Potion of|Set of|Slice of|Suit of) /)) { temp.innerHTML = temp.innerHTML.replace(/^(Bottle of|Bunch of|Can of|Chunk of|Dose of|Pair of|Piece of|Potion of|Set of|Slice of|Suit of) /, ''); }
+
+        // enchanted/magical shortening
         if (temp.innerHTML.match(/\((enchanted|magical)\)/)) { temp.innerHTML = temp.innerHTML.replace(/\((enchanted|magical)\)/, '(mag)'); }
+
+        // shorten spellgems
         if (temp.innerHTML.match(/( Spellgem,)/)) { temp.innerHTML = temp.innerHTML.replace(/( Spellgem,)/, ','); }
+
+        // remove glyph extra start
         if (temp.innerHTML.match(/(Glyph of )/)) { temp.innerHTML = temp.innerHTML.replace(/(Glyph of )/, ''); }
+
+        // Q5 system and (#s) for shots
         if (getSetting('inventory-extra-shorter') == 'true') {
             if (temp.innerHTML.match(/\((\d+) (shots|charges)\)/)) { temp.innerHTML = temp.innerHTML.replace(/\((\d+) (shots|charges)\)/, '\($1s\)'); }
-    test = temp.innerHTML.match(/\((pristine|good|average|worn|broken|destroyed)\)/)
+
+            test = temp.innerHTML.match(/\((pristine|good|average|worn|broken|destroyed)\)/);
             if (test) { temp.innerHTML = temp.innerHTML.replace(/\((pristine|good|average|worn|broken|destroyed)\)/, '('+qualityLevel[test[1]]+')'); }
         }
     }
 }
+
 function invContextBtns(invTBody) {
-    var inhHead, invRows, len, i, temp, iid, contextbtn, option, setting, sidx = 0;
+    var invHead, invRows, len, i, temp, iid, contextbtn, option, setting, sidx = 0;
     var contextopts = [['give','Give'],['safe','Safe'],['foot','Locker'],['null','None']];
     setting = getSetting('inventory-extra-contextselect');
     invRows = document.evaluate("//tr[@bgcolor='#eeeeee' or @bgcolor='#ffffff']", invTBody, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -1243,13 +1425,14 @@ function invContextBtns(invTBody) {
         temp.add(option);
     }
     temp.selectedIndex = sidx;
-    temp.addEventListener('change', function(e) { inventory_context_setting(e) }, false);
+    temp.addEventListener('change', function(e) { inventory_context_setting(e); }, false);
     invHead.appendChild(document.createTextNode('-Context: '));
     invHead.appendChild(temp);
 }
+
 function inventory_context_setting(e) {
     var len, i, setting;
-    setting = e.target.options[e.target.selectedIndex].value
+    setting = e.target.options[e.target.selectedIndex].value;
     setSetting('inventory-extra-contextselect', setting);
     var contextbtns = document.evaluate("//a[starts-with(@id,'context-')]", e.target.parentNode, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
     len = contextbtns.snapshotLength; if (len === 0) { return; }
@@ -1259,6 +1442,7 @@ function inventory_context_setting(e) {
         } else { contextbtns.snapshotItem(i).style.display = 'none'; }
     }
 }
+
 function inventory_context_use(e) {
     var iid = e.target.id.match(/[0-9]+/)[0];
     var setting = getSetting('inventory-extra-contextselect');
@@ -1270,7 +1454,7 @@ function inventory_context_use(e) {
     } else if (setting == 'foot') {
         temp = document.evaluate("//form[@name='safestock' and contains(@action, 'op=footlocker')]/select[@name='item']", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
     } else if (setting == 'null') { return; }
-    else { console.log('LibC: skipping invalid inventory context select'); return; }
+    else { logLibC('LibC: skipping invalid inventory context select'); return; }
     if (temp.snapshotLength === 0) { return; }
     temp = temp.snapshotItem(0);
     form = document.evaluate("input[@type='submit']", temp.parentNode, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null).snapshotItem(0);
@@ -1280,8 +1464,9 @@ function inventory_context_use(e) {
     }
     if (flag) { form.click(); } //with all luck this should fake a click with properly selected item
 }
+
 function invColourComponents(invTBody) {
-    var invHead, len, i, temp, test;
+    var invHead, len, i, temp;
     var cdict = getComponentDictionary();
     invHead = document.evaluate("//tr[@bgcolor='#eeeeee' or @bgcolor='#ffffff']", invTBody, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
     len = invHead.snapshotLength;
@@ -1291,6 +1476,7 @@ function invColourComponents(invTBody) {
         if (cdict['Sorcerer'][temp.textContent]) { temp.className = 'component-'+cdict['Sorcerer'][temp.textContent]; }
     }
 }
+
 function inventory() {
     var invTBody = document.evaluate("//b[starts-with(.,'INVENTORY')]/../../../..", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
     if (invTBody.snapshotLength === 0) { return; }
@@ -1301,6 +1487,7 @@ function inventory() {
     if (getSetting('inventory-extra-short') == 'true') { invShortItems(invTBody); }
     if (getSetting('inventory-extra-context') == 'true') { invContextBtns(invTBody); }
 }
+
 function inventory_toggle(e) {
     var button, elements, action, len, i;
     button = e.target;
@@ -1316,6 +1503,8 @@ function inventory_toggle(e) {
     len = elements.length;
     for (i = 0; i < len; i++) { elements[i].style.display = action; }
 }
+
+
 //#############################################################################
 // tweak 16: Default Select Options
 function selectlastopt(evalstr) {
@@ -1326,8 +1515,11 @@ function selectlastopt(evalstr) {
     len = setselect.length;
     setselect.selectedIndex = len - 1;
 }
+
 function targetsetupdefaults() { selectlastopt("//form[@name='targetsetup']/select[@name='item']"); }
+
 function recapdefaults() { selectlastopt("//form[@name='flag_retrieval']/select[@name='standard_id']"); }
+
 function speakdefaults() {
     var setselect = document.evaluate("//form[@name='speak']/select[@id='speech_target_id']", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
     if (setselect.snapshotLength != 1) { return; }
@@ -1338,22 +1530,33 @@ function speakdefaults() {
 
 //#############################################################################
 // Settings, configuration, and variables
+function logLibC(message, verbose=false) {
+    if (!libCLogging) { return; } // logging disabled in userscript (top of the file)
+    if (verbose && !libCLoggingVerbose) { return; } // verbose logging not enabled
+    console.log(message);
+}
+
 function getSetting(settingname) {
     if (charinfoid) { settingname = 'libc-' + charinfoid + '-' + settingname; }
-    else { return null; }
+    else { logLibC('Error getSetting for '+settingname); return null; }
     return String(GM_getValue(settingname, null));
 }
+
 function setSetting(settingname, val) {
     if (charinfoid) { settingname = 'libc-' + charinfoid + '-' + settingname; }
-    else { return null; }
+    else { logLibC('Error setSetting for '+settingname+' to val: '+val); return null; }
     return GM_setValue(settingname, String(val));
 }
+
 function getGlobalSetting(settingname) { return String(GM_getValue('libc-global'+settingname, null)); }
+
 function setGlobalSetting(settingname, val) { return GM_setValue('libc-global'+settingname, String(val)); }
-function togglecheckbox(e) { console.log('LibC: toggled '+e.target.id); setSetting(e.target.id, e.target.checked); }
+
+function togglecheckbox(e) { logLibC('LibC: toggled '+e.target.id); setSetting(e.target.id, e.target.checked); }
+
 function libCreateCheckbox(name, hovertext) {
     var checkbox;
-    checkbox = document.createElement('input')
+    checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
     if (getSetting(name) == 'true') { checkbox.checked = true; }
     else { checkbox.checked = false; }
@@ -1362,7 +1565,9 @@ function libCreateCheckbox(name, hovertext) {
     checkbox.addEventListener('click', togglecheckbox, false);
     return checkbox;
 }
-function updatetextfield(e) { console.log('LibC: set '+e.target.id+' to '+e.target.value); setSetting(e.target.id, e.target.value); }
+
+function updatetextfield(e) { logLibC('LibC: set '+e.target.id+' to '+e.target.value); setSetting(e.target.id, e.target.value); }
+
 function libCreateTextfield(name, hovertext) {
     var textfield;
     textfield = document.createElement('input');
@@ -1375,7 +1580,9 @@ function libCreateTextfield(name, hovertext) {
     textfield.addEventListener('input', updatetextfield, false);
     return textfield;
 }
-function updateselect(e) { console.log('LibC: set '+e.target.id+' to '+e.target.options[e.target.selectedIndex].value); setSetting(e.target.id, e.target.options[e.target.selectedIndex].value); }
+
+function updateselect(e) { logLibC('LibC: set '+e.target.id+' to '+e.target.options[e.target.selectedIndex].value); setSetting(e.target.id, e.target.options[e.target.selectedIndex].value); }
+
 function libCreateSelect(name, hovertext, values) {
     var select, setting, sidx, len, i, temp, option;
     select = document.createElement('select');
@@ -1393,8 +1600,11 @@ function libCreateSelect(name, hovertext, values) {
     select.addEventListener('change', updateselect, false);
     return select;
 }
+
 function libSettings() {
     var scratchpad, table, temptable, temptablerow, link, verspan, i, len, s, t;
+    
+        // modules: tied to general tweaks. [<functionmap>,"display name","helptext/hovertext"]
     var settingrows = [
         ['hilights', 'Description Hilights', 'Highlights shadows moving in windows and the building lights.'],
         ['sortpeople', 'Sort Characters', 'Sorts characters in a location based on allegiance, and allows further sorting styles and display of informaiton.'],
@@ -1410,18 +1620,21 @@ function libSettings() {
         ['pettarget', 'Pet Target Bug-Fix', 'Fixes it so that clicking on a pet\'s name will target that pet. Does not affect the pet target resetting after an attack.'],
         ['removecolour', 'Remove Gem Colour', 'Removes the colour of a gem and sorts them, in the faction safe. Only applies to spellcraft characters viewing a faction safe.'],
         ['inventory', 'Inventory Tweaks', 'For fast inventory management.'],
-        ['targetsetup', 'Target Set-Up Default', 'Changes the default to the last option for setting up targets (usually bottles).'],
-        ['recapdefaults', 'Recapture Default', 'Changes the default to the last option for reclaiming standards. (For ease of recapture)'],
-        ['speakdefaults', 'Speech Default', 'Changes the default speech target to be "everyone" to prevent accidentally whispering /me.'],
+        ['targetsetup', 'Target Set-Up Default', 'Changes the default to the last option for setting up targets (usually bottles) and avoiding putting up precious potions.'],
+        ['recapdefaults', 'Recapture Standard Default', 'Changes the default to the last option for reclaiming standards. (For ease of recapture)'],
+        ['speakdefaults', 'Speech Defaults to Everyone', 'Changes the default speech target to be "everyone" to prevent accidentally whispering /me.'],
         ['global', 'GLOBAL SETTINGS', 'These settings are stored independent of your characters, due to technical limitations.']
-    ]
+    ];
+
+        // settings to display under modules
+            // b = checkbox, s = select(dropdown), f = textfield, g = global
     var settings = [
         ['hilights', 'b', 'Hilight Shadows', 'shadow', 'Highlights shadows moving in windows.'],
         ['hilights', 'b', 'Hilight Lights', 'lights', 'Highlights the power status of the tile.'],
         ['hilights', 'b', 'Display Pick-Up Item Count', 'targets', 'Adds a count of items that can be picked up to the end of the tile description. Dodgerblue if there are any, and no text if there are none.'],
-        ['sortpeople', 's', 'Enemy Sort', 'sort1', 'What style of sorting is utilised: alphabetical(default), percentage HP, total HP.', [['normal','Alphabetical'],['percent', 'HP Percentage'], ['total', 'HP Total'], ['level', 'Level']]],
+        ['sortpeople', 's', 'Enemy Sort', 'sort1', 'What style of sorting is utilised: alphabetical(default), percentage HP, total HP.', [['normal','Alphabetical'],['percent', 'HP Percentage'], ['total', 'HP Total'], ['downtotal', 'HP Total Missing'], ['level', 'Level']]],
         ['sortpeople', 'b', 'Reverse Enemy Sort', 'reverse1', 'Reverses the order of characters.'],
-        ['sortpeople', 's', 'Ally Sort', 'sort2', 'What style of sorting is utilised: alphabetical(default), percentage HP, total HP.', [['normal','Alphabetical'],['percent', 'HP Percentage'], ['total', 'HP Total'], ['level', 'Level']]],
+        ['sortpeople', 's', 'Ally Sort', 'sort2', 'What style of sorting is utilised: alphabetical(default), percentage HP, total HP.', [['normal','Alphabetical'],['percent', 'HP Percentage'], ['total', 'HP Total'], ['downtotal', 'HP Total Missing'], ['level', 'Level']]],
         ['sortpeople', 'b', 'Reverse Ally Sort', 'reverse2', 'Reverses the order of characters.'],
         ['sortpeople', 'b', 'Sort Neutrals as Allies', 'neutrals', 'Treat unfactioned and neutral factioned characters as allies in the sorted list.'],
         ['sortpeople', 'b', 'Display HP', 'showhp', 'Prints the HP values after the character\'s name. Requires first-aid.'],
@@ -1449,7 +1662,7 @@ function libSettings() {
         ['warnheaders', 'b', 'Warning Move Buttons', 'move', 'Changes the border of move buttons when you are at risk.'],
         ['saveform', 'b', 'Charge-Type 1', 'c1', 'Remembers charged attacks of the first kind. (such as arcane shot and most charged attacks)'],
         ['saveform', 'b', 'Charge-Type 2', 'c2', 'Remembers charged attacks of the second kind. (such as mystic seeker)'],
-        ['saveform', 'b', 'Clockwork Precision', 'precise', 'Remembers the amount for Seraphim\'s Eye of Clockwork Precision.'],
+        ['saveform', 'b', 'Clockwork Precision', 'precision', 'Remembers the amount for Seraphim\'s Eye of Clockwork Precision.'],
         ['saveform', 'b', 'Prayer', 'prayer', 'Remembers the last prayer type and maintains it.'],
         ['saveform', 'b', 'Repair Item', 'repair', 'Remembers the last item repaired and maintains it.'],
         ['pettweak', 'b', 'Count to MP Surplus', 'surplus', 'If checked, will display decay times and hilight based on time until AP equals MP, rather than just AP counts.'],
@@ -1473,10 +1686,11 @@ function libSettings() {
         ['inventory', 'b', 'Short Item Extras', 'shorter', 'Shortens item names further and changes quality levels to Q-levels.'],
         ['inventory', 'b', 'Context Buttons', 'context', 'Adds buttons before item names in the inventory to give, place in safe, or place in footlocker.'],
         ['inventory', 'b', 'Colour Components', 'colourcomponents', 'Colours alchemy components with rarity, and emboldens them.'],
+        // ['craftcheck', 'b', 'Hilight Partial Options', 'hilight-partial', 'Much like alchemy pane, colours items you have some but not all ingredients to craft.'],
         ['global', 'g', 'Colour Message History', 'messagehistory', 'Adds CSS styling to the message history to improve ease of reading. Includes combat actions, searches, speech, and more.'],
         ['global', 'g', 'Safe Faction/Char Buttons', 'safebuttons', 'Adds safety buttons to character pages and faction pages and skill selection pages.'],
         ['global', 'g', 'Faction Census', 'factioncensus', 'Adds a census feature to the faction roster page.']
-    ]
+    ];
     scratchpad = document.evaluate("//td/form/textarea[@name='Scratchpad']/../../../..", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
     if (scratchpad.snapshotLength != 1) { return; }
     table = scratchpad.snapshotItem(0).parentElement;
@@ -1487,7 +1701,7 @@ function libSettings() {
     temptable.className = 'libc-settingtable';
     temptable.appendChild(document.createElement('tbody'));
     link = document.createElement('a');
-    link.href = '/modules.php?name=Forums&file=viewtopic&t=7291'; link.textContent = 'libConglomerate'
+    link.href = '/modules.php?name=Forums&file=viewtopic&t=7291'; link.textContent = 'libConglomerate';
     verspan = document.createElement('span');
     verspan.appendChild(document.createTextNode('Version '+versionStr));
     temptablerow = document.createElement('tr');
@@ -1512,10 +1726,11 @@ function libSettings() {
         if (t == 'g') { addGlobalSetting(s[0], s[2], s[3], s[4]); }
     }
 }
+
 function createSettingsRow(name, title, srdesc) {
     var table, settingsRow, settingTitle, settingList;
     table = document.getElementById('libc-settingtable').firstElementChild; //gets TBODY
-    if (!table) { console.log('LibC: failed to find settingtable'); return; }
+    if (!table) { logLibC('LibC: failed to find settingtable'); return; }
     settingsRow = document.createElement('tr');
     settingsRow.className = 'libc-settingrow';
     settingTitle = document.createElement('td');
@@ -1530,10 +1745,11 @@ function createSettingsRow(name, title, srdesc) {
     settingsRow.appendChild(settingList);
     table.appendChild(settingsRow);
 }
+
 function addToRow(tdid, title, button) {
     var td, tempspan;
     td = document.getElementById('libc-setting-'+tdid);
-    if (!td) { console.log('LibC: failed to find libc-setting-'+tdid); return; }
+    if (!td) { logLibC('LibC: failed to find libc-setting-'+tdid); return; }
     tempspan = document.createElement('span');
     tempspan.className = 'libc-settingspan';
     tempspan.appendChild(document.createTextNode(title));
@@ -1541,19 +1757,24 @@ function addToRow(tdid, title, button) {
     td.appendChild(tempspan);
     td.appendChild(document.createElement('br'));
 }
+
 function addSettingBox(tdid, title, setting, hover) {
     var box = libCreateCheckbox(tdid+'-extra-'+setting, hover);
     addToRow(tdid, title, box);
 }
+
 function addSettingField(tdid, title, setting, hover) {
     var field = libCreateTextfield(tdid+'-extra-'+setting, hover);
     addToRow(tdid, title, field);
 }
+
 function addSettingSelect(tdid, title, setting, hover, vals) {
     var select = libCreateSelect(tdid+'-extra-'+setting, hover, vals);
     addToRow(tdid, title, select);
 }
-function toggleglobal(e) { console.log('LibC: toggled '+e.target.id); setGlobalSetting(e.target.name, e.target.checked); }
+
+function toggleglobal(e) { logLibC('LibC: toggled '+e.target.id); setGlobalSetting(e.target.name, e.target.checked); }
+
 function addGlobalSetting(tdid, title, setting, hover) {
     var checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
@@ -1564,6 +1785,9 @@ function addGlobalSetting(tdid, title, setting, hover) {
     checkbox.addEventListener('click', toggleglobal, false);
     addToRow(tdid, title, checkbox);
 }
+
+
+
 function runLibC() {
     var libCalls, i, len;
     if (getSetting('run-sortpeople') == 'true') { sortpeople(); } //this breaks if not running first. innerHTML editing deletes dom elements
@@ -1571,7 +1795,7 @@ function runLibC() {
         ['factioncensus', factioncensus],
         ['safebuttons', safebuttons],
         ['messagehistory', messagehistory]
-    ]
+    ];
     len = libGlobalCalls.length;
     for (i = 0; i < len; i++) {
         if (getGlobalSetting(libGlobalCalls[i][0]) == 'true') { libGlobalCalls[i][1](); }
@@ -1595,10 +1819,16 @@ function runLibC() {
             ['targetsetup', targetsetupdefaults],
             ['recapdefaults', recapdefaults],
             ['speakdefaults', speakdefaults]
-        ]
+        ];
         len = libCalls.length;
         for (i = 0; i < len; i++) {
-            if (getSetting('run-'+libCalls[i][0]) == 'true') { libCalls[i][1](); }
+            if (getSetting('run-'+libCalls[i][0]) == 'true') {
+                try {
+                    libCalls[i][1](); // safely try to call a function; catch if it throws exception
+                } catch(err) {
+                    logLibC('Error running '+libCalls[i][0]+' with message ' + err.message );
+                }
+            }
         }
     }
 }
