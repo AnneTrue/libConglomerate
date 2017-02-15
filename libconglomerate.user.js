@@ -241,42 +241,41 @@ function sortpeople() {
     var showpetmaster = (getSetting('sortpeople-extra-petmaster') == 'true');
     var sortfield = {'total':'hp', 'percent':'hp_percent', 'downtotal':'hp_down', 'level':'level'};
     var people = [[],[]];
-    logLibC('sortpeople runtime: '+peoplematch[2], verbose=true);
     if (!peoplematch) { return; }
-    if (peoplematch[2] !== 0) {
-        ppl = peoplematch[4].substring(1, peoplematch[4].length - 1).split('>, <');
-        len = ppl.length;
-        if (len != parseInt(peoplematch[2])) { logLibC('Count fails to match peoplematch count'); return; }
-        for (i = 0; i < len; i++) {
-            person = createSortPerson(ppl[i], allyneutral);
-            if (person['sorttype'] === 0) { people[0].push(person); }
-            else { people[1].push(person); }
-        }
-    
-        // sort people here
-        if ( sortfield.hasOwnProperty(sort1) ) {
-            people[0].sort( sort_by( sortfield[sort1], sortRev1) );
-        }
-        // implicit else: don't sort, already in alphabetical order
-        if ( sortfield.hasOwnProperty(sort2) ) {
-            people[1].sort( sort_by( sortfield[sort2], sortRev2) );
-        } // again implied else --> don't sort
-    
-        // now format for display
-        count = (people[0].length + people[1].length);
-        if (count != parseInt(peoplematch[2])) { logLibC('Count fails to match peoplematch count'); return; } // just in case
-        if (count == 1) {
-            h = '<p id="chars_desc">There is 1 other person here.</p>\n';
-        } else {
-            h = '<p id="chars_desc">There are ' + count + ' other people here.</p>\n';
-        }
-    
-        h += createSortedPeopleHTML(people[0], 'victims', showhp);
-        h += createSortedPeopleHTML(people[1], 'friends', showhp);
-    
-        h = '<div id="other_chars">' + h + '</div>';
-        document.documentElement.innerHTML = document.documentElement.innerHTML.replace(peoplematch[0], h);
+    logLibC('sortpeople runtime: '+peoplematch[2], verbose=true);
+    if (peoplematch[2] === 0) { return; }
+    ppl = peoplematch[4].substring(1, peoplematch[4].length - 1).split('>, <');
+    len = ppl.length;
+    if (len != parseInt(peoplematch[2])) { logLibC('Count fails to match peoplematch count'); return; }
+    for (i = 0; i < len; i++) {
+        person = createSortPerson(ppl[i], allyneutral);
+        if (person['sorttype'] === 0) { people[0].push(person); }
+        else { people[1].push(person); }
     }
+
+    // sort people here
+    if ( sortfield.hasOwnProperty(sort1) ) {
+        people[0].sort( sort_by( sortfield[sort1], sortRev1) );
+    }
+    // implicit else: don't sort, already in alphabetical order
+    if ( sortfield.hasOwnProperty(sort2) ) {
+        people[1].sort( sort_by( sortfield[sort2], sortRev2) );
+    } // again implied else --> don't sort
+
+    // now format for display
+    count = (people[0].length + people[1].length);
+    if (count != parseInt(peoplematch[2])) { logLibC('Count fails to match peoplematch count'); return; } // just in case
+    if (count == 1) {
+        h = '<p id="chars_desc">There is 1 other person here.</p>\n';
+    } else {
+        h = '<p id="chars_desc">There are ' + count + ' other people here.</p>\n';
+    }
+
+    h += createSortedPeopleHTML(people[0], 'victims', showhp);
+    h += createSortedPeopleHTML(people[1], 'friends', showhp);
+
+    h = '<div id="other_chars">' + h + '</div>';
+    document.documentElement.innerHTML = document.documentElement.innerHTML.replace(peoplematch[0], h);
 
     // Optional showpetmaster trigger
     if (showpetmaster) { petmaster(); }
