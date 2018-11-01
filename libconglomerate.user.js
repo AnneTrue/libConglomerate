@@ -1,10 +1,10 @@
 // ==UserScript==
 // @name           LibC
 // @description    Lib's Conglomerated Scripts
-// @include        http://nexusclash.com/modules.php?name=Game*
-// @include        http://www.nexusclash.com/modules.php?name=Game*
-// @exclude        http://nexusclash.com/modules.php?name=Game&op=disconnect
-// @exclude        http://www.nexusclash.com/modules.php?name=Game&op=disconnect
+// @include        *nexusclash.com/modules.php?name=Game*
+// @include        *www.nexusclash.com/modules.php?name=Game*
+// @exclude        *nexusclash.com/modules.php?name=Game&op=disconnect
+// @exclude        *www.nexusclash.com/modules.php?name=Game&op=disconnect
 // @grant          GM_getValue
 // @grant          GM_setValue
 // @version     3.0.1
