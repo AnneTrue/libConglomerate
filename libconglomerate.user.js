@@ -7,21 +7,22 @@
 // @exclude        *www.nexusclash.com/modules.php?name=Game&op=disconnect
 // @grant          GM_getValue
 // @grant          GM_setValue
-// @version     3.0.1
+// @version     3.1.0
 // ==/UserScript==
 
 (function () {
-versionStr = '3.0.1'; // version updates go here too!
+var versionStr = '3.1.0'; // version updates go here too!
 
-libCLogging = true;         // logs to console; can disable if you want
-libCLoggingVerbose = false; // enable for dev-work
+// logs to console; can disable if you want
+var libCLogging = true;
+// verbose logging, set true for dev-work
+var libCLoggingVerbose = false;
 
 
 //#############################################################################
 // boilerplate functions:
 
-// takes list of css to inject into the global style sheet
-// uses list to batch the operation, instead of multiple read/write operations to DOM
+// takes list of css strings to inject into the global style sheet
 function addGlobalStyle(list) {
     var head, style, i, len, css= '';
     head = document.getElementsByTagName('head')[0];
@@ -34,13 +35,23 @@ function addGlobalStyle(list) {
     head.appendChild(style);
 }
 
+    
 // generic functions
+// returns number of char c in x
 function timesCharExist(x, c){ var t=0,l=0;c=c+''; while(l=x.indexOf(c,l)+1)++t; return t; }
+
+
+// sets first letter to be uppercase
 function ucfirstletter(str){ return str.replace(/\b[A-Za-z]/,function($0) { return $0.toUpperCase(); }); }
+
+
+// checks if a string represents an integer
 function isNormalInteger(str) { var n = ~~Number(str); return String(n) === str && n >= 0; }
+
 
 // forces ints to be two digits long for displaying as string
 function fluffDigit(x) { if (x<10) { x = '0'+x; } return x; }
+
 
 // platform support: GM is provided by greasemonkey, if not assume chrome and use localStorage
 try {
@@ -51,6 +62,7 @@ try {
     }
 } catch (e) { logLibC('GM_set/get error:\n' + e.message); }
 
+
 // global info: used to determine if script can safely run without errors (and also character info)
 var charinfodiv = null, levelclass = null, levelclassname = '', charinfoid = null;
 if (document.getElementById('CharacterInfo')) { //get general data from the page
@@ -60,7 +72,8 @@ if (document.getElementById('CharacterInfo')) { //get general data from the page
     charinfoid = charinfodiv.getElementsByTagName('a')[0].href.match(/id=(\d+)$/)[1];
 }
 
-// custom CSS for script; injected into page
+
+// custom CSS for script
 var injectedcss = [
     'span.hptext { font-size: xx-small; color: #ff0099; }',
     'span.hptext2 { font-size: xx-small; color: black; }',
@@ -160,7 +173,7 @@ function showhilights() {
     var locSnapShot, desc, descString, descdiv, descMatch, puforms, targetdesc, pucount;
     locSnapShot = document.evaluate("//td[@valign='top']/b/u", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
 
-    if (locSnapShot.snapshotLength === 0) { return; } // sentinel exit condition; no location description to find
+    if (locSnapShot.snapshotLength === 0) { return; } // no location description to find
 
     desc = locSnapShot.snapshotItem(0).parentElement.nextElementSibling.nextElementSibling.nextSibling; //please don't cringe
 
@@ -171,7 +184,7 @@ function showhilights() {
     descMatch = descString.match(/(([\s\S]+)?(The lights are on inside the building|The building lights illuminate the area|The building windows are dark|The building lights are off|The lights inside the building appear to be off|The lights seem to be off throughout the neighorhood|The building is dark\. In fact, the lights seem to be off all throughout the neighorhood|The lights seem to be off throughout the neighorhood))?(([\s\S]+)?(There are several shadows moving in the windows|The occasional shadow can be glimpsed moving in the windows))?([\s\S]+)/);
     if (descMatch) { desctextmatches(descdiv, descMatch); }
     else { descdiv.appendChild(document.createTextNode(descString)); } // if no match, just put the string back where it was
-    
+
     // targets/items set up in location
     if (getSetting('hilights-extra-targets') == 'true') { //try to add number of targets
         puforms = document.evaluate("//form[@name='pickup']", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -187,6 +200,7 @@ function showhilights() {
     desc.remove(); // we copied things, remove (redundant) original
     }
 }
+
 
 function desctextmatches(descdiv, descMatch) {
     // boilerplate code for lights/shadows
@@ -242,14 +256,14 @@ function sortpeople() {
     var sortfield = {'total':'hp', 'percent':'hp_percent', 'downtotal':'hp_down', 'level':'level'};
     var people = [[],[]];
     if (!peoplematch) { return; }
-    logLibC('sortpeople runtime: '+peoplematch[2], verbose=true);
+    logLibC('sortpeople runtime: '+peoplematch[2], true);
     if (peoplematch[2] === 0) { return; }
     ppl = peoplematch[4].substring(1, peoplematch[4].length - 1).split('>, <');
     len = ppl.length;
     if (len != parseInt(peoplematch[2])) { logLibC('Count fails to match peoplematch count'); return; }
     for (i = 0; i < len; i++) {
         person = createSortPerson(ppl[i], allyneutral);
-        if (person['sorttype'] === 0) { people[0].push(person); }
+        if (person.sorttype === 0) { people[0].push(person); }
         else { people[1].push(person); }
     }
 
@@ -281,6 +295,7 @@ function sortpeople() {
     if (showpetmaster) { petmaster(); }
 }
 
+
 function createSortedPeopleHTML(people, id, showhp) {
     var retHTML = '<p id="'+id+'">';
     var len = people.length, i;
@@ -291,15 +306,17 @@ function createSortedPeopleHTML(people, id, showhp) {
     return retHTML.substring(0, retHTML.length - 2) + '.</p>'; // remove the trailing joiner and replace with close of par
 }
 
+
 function createSortedPersonHTML(person, showhp) {
     var hptext = '';
-    if (showhp && person['hp_visible']) {
-        hptext = (person['hp_down'] === 0) ? '<span class=hptext2>' : '<span class=hptext>';
-        hptext += '+' + person['hp'];
-        if (person['hp_down'] > 0) { hptext += '-' + person['hp_down']; }
+    if (showhp && person.hp_visible) {
+        hptext = (person.hp_down === 0) ? '<span class=hptext2>' : '<span class=hptext>';
+        hptext += '+' + person.hp;
+        if (person.hp_down > 0) { hptext += '-' + person.hp_down; }
     }
-    return '<span class="char" id="char_' + person['id'] + '"><' + person['html'] + '>' + hptext + '</span></span>, ';
+    return '<span class="char" id="char_' + person.id + '"><' + person.html + '>' + hptext + '</span></span>, ';
 }
+
 
 function getSortTypes() {
     var sort1 = getSortSingle( getSetting('sortpeople-extra-sort1') ),
@@ -315,6 +332,7 @@ function getSortSingle(sortStr) {
     return sortStr
 }
 
+
 function createSortPerson(ppl, allyneutral) {
     // creates an object of the character from the html
     var retPerson = { 'hp':0,'hp_down':0 }; // defaults
@@ -322,41 +340,42 @@ function createSortPerson(ppl, allyneutral) {
     // ^ this is the magic to match a person ^
 
     if (p[1] == 'enemy' || p[1] == 'hostile') {
-        retPerson['sorttype'] = 0;
+        retPerson.sorttype = 0;
     }
     else if (p[1] == 'neutral' && allyneutral === false) {
-        retPerson['sorttype'] = 0;
+        retPerson.sorttype = 0;
     }
     else {
-        retPerson['sorttype'] = 1;
+        retPerson.sorttype = 1;
     }
-    retPerson['politics'] = p[1]; // specific info for later scripting expansion
-    retPerson['html'] = ppl;
-    retPerson['id'] = p[2];
-    retPerson['level'] = p[4];
-    
+    retPerson.politics = p[1]; // specific info for later scripting expansion
+    retPerson.html = ppl;
+    retPerson.id = p[2];
+    retPerson.level = p[4];
+
     if (p[6]) {
         // if char has first aid and can see hp vals
-        retPerson['hp_visible'] = true;
-        retPerson['hp'] = parseInt(p[7]);
-        retPerson['hp_down'] = (parseInt(p[8])-parseInt(p[7]));
-        retPerson['hp_percent'] = (parseInt(p[7])/parseInt(p[8])) * 100;
+        retPerson.hp_visible = true;
+        retPerson.hp = parseInt(p[7]);
+        retPerson.hp_down = (parseInt(p[8])-parseInt(p[7]));
+        retPerson.hp_percent = (parseInt(p[7])/parseInt(p[8])) * 100;
     } else {
         // char doesn't have first aid; only sees 10,11-50,51-99,100% hp totals
-        retPerson['hp_visible'] = false;
+        retPerson.hp_visible = false;
         switch (parseInt(p[9])) {
             case 1:
-                retPerson['hp_percent'] = 100; break;
+                retPerson.hp_percent = 100; break;
             case 2:
-                retPerson['hp_percent'] = 99; break;
+                retPerson.hp_percent = 99; break;
             case 3:
-                retPerson['hp_percent'] = 50; break;
+                retPerson.hp_percent = 50; break;
             case 4:
-                retPerson['hp_percent'] = 10; break;
+                retPerson.hp_percent = 10; break;
         }
     }
     return retPerson;
 }
+
 
 var sort_by = function(field, reverse=false) {
     var key = function (obj) { return obj[field] };
@@ -365,6 +384,7 @@ var sort_by = function(field, reverse=false) {
         return ( (A < B) ? -1 : ((A > B) ? 1 : 0) ) * [1,-1][+!!reverse];
     }
 }
+
 
 function petmaster() {
     var characters = document.evaluate("//span[@class='char']", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -378,6 +398,7 @@ function petmaster() {
     }
 }
 
+
 function ehighlightpet(e) {
     var charname = e.target.textContent.replace(/\s$/g, ''); //rtrim
     var searchstring = "Master: " + charname;
@@ -388,6 +409,7 @@ function ehighlightpet(e) {
     if (len >= 1) { e.target.title = String(len) + " Pets"; }
     for (i = 0; i < len; i++) { theirpets.snapshotItem(i).style.color = 'blue'; }
 }
+
 
 function eunhighlightpet(e) {
     var charname = e.target.textContent.replace(/\s$/g, '');
@@ -408,11 +430,13 @@ function hiddentoggle(e) {
     else { targetbutton.style.visibility = 'hidden'; }
 }
 
+
 function disabletoggle(e) {
     var targetbutton = e.target.nextElementSibling;
     if (e.target.checked) { targetbutton.disabled = false; }
     else { targetbutton.disabled = true; }
 }
+
 
 function createDisableButton(btn) {
     if (!btn.hasAttribute('confirmflag')) {
@@ -425,6 +449,7 @@ function createDisableButton(btn) {
         btn.disabled = true;
     }
 }
+
 
 function createHiddenButton(btn) {
     if (!btn.hasAttribute('confirmflag')) {
@@ -440,6 +465,7 @@ function createHiddenButton(btn) {
     }
 }
 
+
 function createDoubleClickButton(btn) {
     var newbutton = document.createElement('a');
     var doubleClick = (function () {
@@ -447,7 +473,7 @@ function createDoubleClickButton(btn) {
         return function(e) {
             if (count > 1) {
                 e.target.nextElementSibling.click();
-                logLibC('clicking '+e.target.nextElementSibling.href, verbose=true);
+                logLibC('clicking '+e.target.nextElementSibling.href, true);
             }
             count += 1;
             if (e.target.textContent.slice(-1) === '?') {
@@ -465,6 +491,7 @@ function createDoubleClickButton(btn) {
     btn.style.visibility = 'hidden';
 }
 
+
 function safebuttons() {
     var loc = location + '';
     if (!charinfoid && getGlobalSetting('safebuttons') == 'true') {
@@ -481,6 +508,7 @@ function safebuttons() {
     }
 }
 
+
 function safetyButtons(xPathStr, operation) {
     var buttons, elementButton, len, i;
     buttons = document.evaluate(xPathStr, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -494,11 +522,13 @@ function safetyButtons(xPathStr, operation) {
     }
 }
 
+
 function enableSpeechForm(e) {
     var button = e.target.previousElementSibling;
     if (e.target.value !== '') { button.disabled = false; }
     else { button.disabled = true; }
 }
+
 
 function safebuttons_speech() {
     var form, temp, len, i;
@@ -545,7 +575,7 @@ function messagehistory() {
         alonglist[i] = alonglist[i].replace(/( a)(\(?(n)\)?( [AEIOUaeiou])|\(?n\)?( [^AEIOUaeiou]))/g,'$1$3$4$5');
         lenm = mm.length;
         for (j = 0; j < lenm; j++) {
-            ret_val =  messagereplacer(alonglist[i], mm[j].m, mm[j].o, mm[j].e);
+            ret_val = messagereplacer(alonglist[i], mm[j].m, mm[j].o, mm[j].e);
             if (ret_val) { alonglist[i] = ret_val; break; }
         }
         alonglist[i] = alonglist[i].replace(/(Your weapon was damaged during the attack\. It is now less effective!)/, "<b><u>$1</u></b>"); //yes this is a hack to always emphasise even when another matcher catches the line
@@ -553,6 +583,7 @@ function messagehistory() {
     }
 messages.innerHTML = alonglist.join('');
 }
+
 
 function messagematchers() {
     // generates a list of message matchers and returns it
@@ -607,9 +638,12 @@ function messagematchers() {
         return mm;
 }
 
+
 function messagereplacer(liststring, match, operation, extra) {
-    if (liststring.match(match)) { //operation 'p' for 'padding' the message with a div of class $extra, operation 'r' for 'replacing' a string with $extra
+    if (liststring.match(match)) {
+        //operation 'p' for 'padding' the message with a div of class $extra
         if (operation == 'p') { liststring = "<div class='"+extra+"'>"+liststring+"</div>"; }
+        //operation 'r' for 'replacing' a string with $extra
         else if (operation == 'r') { liststring = liststring.replace(match, extra); }
         return liststring;
     }
@@ -626,15 +660,18 @@ function wpSDPA (option) {
     if (test) { option.innerHTML += '(dpa:'+test[1]*Math.min(Math.max(test[2],1),99)/100+')'; }
 }
 
+
 // display shorter damage/to-hit chance
 function wpSDMG (option) {
     if (option.innerHTML.match(/ - (\d+) dmg.?, (\d+)% to hit/)) { option.innerHTML = option.innerHTML.replace(/ - (\d+) dmg.?, (\d+)% to hit/, '-$1/$2%'); }
 }
 
+
 // display shortened shot amounts
 function wpSSHOTS (option) {
     if (option.innerHTML.match(/\((\d+) shots\)/)) { option.innerHTML = option.innerHTML.replace(/\((\d+) shots\)/, '\($1s\)'); }
 }
+
 
 // display shortened spellgem names (and special touch attacks?)
 function wpSGEM (option) {
@@ -643,6 +680,7 @@ function wpSGEM (option) {
     if (option.innerHTML.match(/(Glyph of )/)) { option.innerHTML = option.innerHTML.replace(/(Glyph of )/, ''); }
 }
 
+
 // display shortened weapon quality
 function wpSQUAL (option) {
     var qualityLevel = {'pristine':'+Q5+', 'good':'+Q4+', 'average':'=Q3=', 'worn':'-Q2-', 'broken':'-Q1-', 'destroyed':'-Q0-'};
@@ -650,10 +688,12 @@ function wpSQUAL (option) {
     if (test) { option.innerHTML = option.innerHTML.replace(/ \((pristine|good|average|worn|broken|destroyed)\) /, qualityLevel[test[1]]); }
 }
 
+
 // display shortened enchant/magical status
 function wpSMAG (option) {
     if (option.innerHTML.match(/\((magical|enchanted)\)/)) { option.innerHTML = option.innerHTML.replace(/\((magical|enchanted)\)/, '(mag)'); }
 }
+
 
 function weaponpane() {
     var weaponboxes = document.evaluate("//select[@name='attacking_with_item_id']", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -783,6 +823,7 @@ function safestore(name, path) {
     if (value) { setSetting('store-'+name, value); }
 }
 
+
 function rememberForm(name, path, selname) {
     var select = document.evaluate(path, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
     var len = select.snapshotLength;
@@ -800,6 +841,7 @@ function rememberForm(name, path, selname) {
         }
     }
 }
+
 
 function saveForms() {
     var refresh = document.evaluate("//li[@class='topmenu']/a[text()='Game Map']", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -825,13 +867,18 @@ function saveForms() {
 
 //#############################################################################
 // tweak 9: Pet Interface Overhaul
+//GLOBALS
+var petCountSurplus = null, petAPLow = null, petAPMid = null;
+
+
 function processPetTable() {
-    var tick = getTick(),  minPet = null, minPet2 = null, len,
+    var tick = getTick(), minPet = null, minPet2 = null, len,
         petRows = document.evaluate("//tr[td[@title='Rename Pet']]", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null),
         retPets; //defaults
 
-    // GLOBALS
-    petCountSurplus = (getSetting('pettweak-extra-surplus') == 'true'), petAPLow = 8, petAPMid = 20;
+    petCountSurplus = (getSetting('pettweak-extra-surplus') == 'true');
+    petAPLow = 8;
+    petAPMid = 20;
 
     // hack to set default if unset
     if (isNormalInteger(getSetting('pettweak-extra-ap-low'))) { petAPLow = parseInt(getSetting('pettweak-extra-ap-low')); }
@@ -851,6 +898,7 @@ function processPetTable() {
     if (minPet2 !== null) { minPet2.Row.setAttribute('class', minPet2.Row.getAttribute('class') + ' petstatus-nextpet2'); }
 }
 
+
 function processRow(row, tick, minPet, minPet2) {
     var ap = parseInt(row.cells[2].innerHTML), mp = parseInt(row.cells[3].innerHTML), hp = parseInt(row.cells[4].innerHTML);
     if (minPet === null || ap < minPet.AP || (ap == minPet.AP && mp < minPet.MP) || (ap == minPet.AP && mp == minPet.MP && hp < minPet.HP)) { minPet2 = minPet; minPet = { AP:ap, MP:mp, HP:hp, Row:row }; } //stomp through, finding pet with lowest ap, with tie breakers mp and finally hp
@@ -861,6 +909,7 @@ function processRow(row, tick, minPet, minPet2) {
     return [minPet, minPet2];
 }
 
+
 function displayDecayTime(row, ap, mp, tick) {
     var timeEmpty = new Date(tick), temp = ap;
     if (petCountSurplus && ap > mp) { temp = (ap - mp); }
@@ -870,12 +919,14 @@ function displayDecayTime(row, ap, mp, tick) {
     row.cells[7].title = 'Local: ' + timeEmpty.toTimeString().substring(0,5);
 }
 
+
 function modifyTable(row) {
     var table = row.parentNode.parentNode;
     table.style.width = table.offsetWidth - 4;
     table.rows[1].insertCell(7);
     table.rows[1].cells[7].innerHTML = 'Decay';
 }
+
 
 function setRowClass(row, ap, mp) {
     var rowClass = '', temp = ap;
@@ -886,12 +937,14 @@ function setRowClass(row, ap, mp) {
     row.setAttribute('class', rowClass);
 }
 
+
 function modifyStanceForm(row) {
     var stanceSubmit = document.evaluate(".//input[@type='submit']", row.cells[5], null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null).snapshotItem(0);
     stanceSubmit.style.display = 'none';
     var stanceSelect = document.evaluate('.//select',row.cells[5],null,XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,null).snapshotItem(0);
     stanceSelect.onchange = function() { this.form.submit(); };
 }
+
 
 function getTick() {
     var tick = new Date();
@@ -933,6 +986,7 @@ function alchemytweak() {
     }
 }
 
+
 function parseRecipes(character, recipePane) {
     var complete = [], partial = [], empty = [], i, htmltable;
     var recipes = recipePane.innerHTML.split('<br>');
@@ -957,6 +1011,7 @@ function parseRecipes(character, recipePane) {
     recipePane.innerHTML = htmltable;
 }
 
+
 function createHelpRow(name, title, helpString) {
     var rowClass, helpRow, fullDisplay = 'none', summaryDisplay = 'table-row';
     if (getSetting('alchemy-toggle-' + name + 'help') == 'full') { fullDisplay = 'table-row'; summaryDisplay = 'none'; }
@@ -965,6 +1020,7 @@ function createHelpRow(name, title, helpString) {
     helpRow += "<tr id='recipe-"+name+"help-summary' class='" + rowClass + "' style='display:" + summaryDisplay + "'><td valign='top' class='recipename'><a class='toggleLink' id='toggle-"+name+"help-summary'><img src='http://nexusclash.com/images/g/inf/open.gif'/></a>H:"+title+"</td></tr>";
     return helpRow;
 }
+
 
 function createComponentHelper() {
     var cRow, rowClass, fullDisplay = 'none', summaryDisplay = 'table-row', comp, cString, cssClass, safeRetrieve, count;
@@ -985,6 +1041,7 @@ function createComponentHelper() {
     cRow += "<tr id='recipe-componentshelp-summary' class='" + rowClass + "' style='display:" + summaryDisplay + "'><td valign='top' class='recipename'><a class='toggleLink' id='toggle-componentshelp-summary'><img src='http://nexusclash.com/images/g/inf/open.gif'/></a>Comp Dict</td></tr>";
     return cRow;
 }
+
 
 function formatRecipe(recipe, rowClass) {
     var i, len, completionLevel = 'inventory', componentString = '', buttonHtml = '', potionName = '', componentList, recipeComponents, componentCount = 0, inventoryCount = 0, safeCount = 0, preserved = 'saved', safeRetrieve = '', safeRetrieveType = '', safeRetrieveForm = '', safePotionCountSpan = '', safePotionCountShort = '', safePotionCount, retform = '<br>', placeform = '', fullDisplay = 'table-row', summaryDisplay = 'none', shortName, cssClass, component, count, potRetVal, potRetType;
@@ -1076,6 +1133,7 @@ function formatRecipe(recipe, rowClass) {
     return recipe;
 }
 
+
 function getSafeItem(item) {
     var ret_id = '',  ret_type = '';
     if (safeItems[item]) {
@@ -1085,10 +1143,12 @@ function getSafeItem(item) {
     return [ret_id, ret_type];
 }
 
+
 function getInvItem(item) {
     if (inventoryItems[item]) { return inventoryItems[item].value; }
     else { return ''; }
 }
+
 
 function parseSafeItems() {
     var items = [], len, i, j, safestatus, safeType, safeOptions, componentMatch, componentId, component, count, alchemyItems;
@@ -1119,6 +1179,7 @@ function parseSafeItems() {
     return [items, safestatus];
 }
 
+
 function parseInventoryItems() {
     var items = [], len, i, component, value;
     var safeOptions = document.evaluate("//form[@name='safestock' or @name='alchemyresearch']/select[@name='item' or @name='itemid']/option",document,null,XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,null);
@@ -1133,12 +1194,14 @@ function parseInventoryItems() {
     return items;
 }
 
+
 function parseCharacterInfo() {
     var character = {};
     character.Class = 'Sorcerer'; // = levelclassname; //bugged so that all classes have same corpus
     character.Id = charinfoid;
     return character;
 }
+
 
 function setToggle(characterId, recipe, toggleState) {
     setSetting('alchemy-toggle-' + recipe, toggleState);
@@ -1147,6 +1210,7 @@ function setToggle(characterId, recipe, toggleState) {
     if (toggleState == 'summary') { full.style.display = 'none'; summary.style.display = 'table-row'; }
     else { full.style.display = 'table-row'; summary.style.display = 'none'; }
 }
+
 
 function setToggleListeners() {
     var len, i, link;
@@ -1158,12 +1222,14 @@ function setToggleListeners() {
     }
 }
 
+
 function setToggleListener(link) {
     var linkMatch = link.id.match(/toggle-(.+)-(full|summary)/);
     var potion = linkMatch[1];
     var toggleType = linkMatch[2];
     link.addEventListener('click', function() { setToggle(character.Id, potion, (toggleType == 'full') ? 'summary' : 'full'); }, false);
 }
+
 
 function toggleAll(toggleState) {
     var len, i, link, linkMatch, potion;
@@ -1177,6 +1243,7 @@ function toggleAll(toggleState) {
     }
 }
 
+
 function setToggleAll(panetitle) {
     var open, close;
     open = document.createElement('input');
@@ -1188,6 +1255,7 @@ function setToggleAll(panetitle) {
     panetitle.appendChild(open);
     panetitle.appendChild(close);
 }
+
 
 function getComponentDictionary() {
     var components = {};
@@ -1228,6 +1296,7 @@ function getComponentDictionary() {
     return components;
 }
 
+
 function getShortNames() {
     var shortNames = {};
     shortNames['Acid Affinity'] = 'Acid';
@@ -1248,6 +1317,7 @@ function getShortNames() {
     shortNames['Water-Breathing'] = 'Wtr Brth';
     return shortNames;
 }
+
 
 function getFixedComponents() {
     var fixedComponents = {};
@@ -1285,6 +1355,7 @@ function addAccessKey(extra, evalstr) {
     setSetting('accesskeys-extra-'+extra, aKey);
     if (form.snapshotLength > 0) { form.snapshotItem(0).accessKey = aKey; }
 }
+
 
 function accesskeys() {
     if (getSetting('accesskeys-extra-heal') != 'null') { addAccessKey('heal', "//form/input[@name='heal_type']/../input[@type='submit']"); }
@@ -1324,8 +1395,8 @@ function removecolours() {
         tmpAry[i][3] = selElem.options[i].className;
     }
     tmpAry.sort(function (a,b) {//this needed to ignore case and leading numbers
-            var a=a[0].match(/([A-Za-z-,0-9 ]+)/)[1];
-            var b=b[0].match(/([A-Za-z-,0-9 ]+)/)[1];
+            a=a[0].match(/([A-Za-z-,0-9 ]+)/)[1];
+            b=b[0].match(/([A-Za-z-,0-9 ]+)/)[1];
             return a<b?-1:b<a?1:0;
         });
     len = tmpAry.length;
@@ -1368,6 +1439,7 @@ function invFastReload(invTBody) {
     }
 }
 
+
 function invHideItems(invTBody) {
     var invHead, hidestate='table-row', len, i, hidebutton;
     invHead = document.evaluate("//th[starts-with(.,'Item')]", invTBody, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -1388,6 +1460,7 @@ function invHideItems(invTBody) {
         }
     }
 }
+
 
 function invShortItems(invTBody) {
     var invHead, len, i, temp, test;
@@ -1418,6 +1491,7 @@ function invShortItems(invTBody) {
         }
     }
 }
+
 
 function invContextBtns(invTBody) {
     var invHead, invRows, len, i, temp, iid, contextbtn, option, setting, sidx = 0;
@@ -1456,6 +1530,7 @@ function invContextBtns(invTBody) {
     invHead.appendChild(temp);
 }
 
+
 function inventory_context_setting(e) {
     var len, i, setting;
     setting = e.target.options[e.target.selectedIndex].value;
@@ -1468,6 +1543,7 @@ function inventory_context_setting(e) {
         } else { contextbtns.snapshotItem(i).style.display = 'none'; }
     }
 }
+
 
 function inventory_context_use(e) {
     var iid = e.target.id.match(/[0-9]+/)[0];
@@ -1491,6 +1567,7 @@ function inventory_context_use(e) {
     if (flag) { form.click(); } //with all luck this should fake a click with properly selected item
 }
 
+
 function invColourComponents(invTBody) {
     var invHead, len, i, temp;
     var cdict = getComponentDictionary();
@@ -1503,6 +1580,7 @@ function invColourComponents(invTBody) {
     }
 }
 
+
 function inventory() {
     var invTBody = document.evaluate("//b[starts-with(.,'INVENTORY')]/../../../..", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
     if (invTBody.snapshotLength === 0) { return; }
@@ -1513,6 +1591,7 @@ function inventory() {
     if (getSetting('inventory-extra-short') == 'true') { invShortItems(invTBody); }
     if (getSetting('inventory-extra-context') == 'true') { invContextBtns(invTBody); }
 }
+
 
 function inventory_toggle(e) {
     var button, elements, action, len, i;
@@ -1542,16 +1621,18 @@ function selectlastopt(evalstr) {
     setselect.selectedIndex = len - 1;
 }
 
+
 function targetsetupdefaults() { selectlastopt("//form[@name='targetsetup']/select[@name='item']"); }
 
+
 function recapdefaults() { selectlastopt("//form[@name='flag_retrieval']/select[@name='standard_id']"); }
+
 
 function speakdefaults() {
     var setselect = document.evaluate("//form[@name='speak']/select[@id='speech_target_id']", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
     if (setselect.snapshotLength != 1) { return; }
     setselect = setselect.snapshotItem(0).selectedIndex = 0;
 }
-
 
 
 //#############################################################################
@@ -1562,11 +1643,13 @@ function logLibC(message, verbose=false) {
     console.log('[LibC] [ver:'+versionStr+']:  '+message);
 }
 
+
 function getSetting(settingname) {
     if (charinfoid) { settingname = 'libc-' + charinfoid + '-' + settingname; }
     else { logLibC('Error getSetting for '+settingname); return null; }
     return String(GM_getValue(settingname, null));
 }
+
 
 function setSetting(settingname, val) {
     if (charinfoid) { settingname = 'libc-' + charinfoid + '-' + settingname; }
@@ -1574,11 +1657,15 @@ function setSetting(settingname, val) {
     return GM_setValue(settingname, String(val));
 }
 
+
 function getGlobalSetting(settingname) { return String(GM_getValue('libc-global'+settingname, null)); }
+
 
 function setGlobalSetting(settingname, val) { return GM_setValue('libc-global'+settingname, String(val)); }
 
+
 function togglecheckbox(e) { logLibC('LibC: toggled '+e.target.id); setSetting(e.target.id, e.target.checked); }
+
 
 function libCreateCheckbox(name, hovertext) {
     var checkbox;
@@ -1592,7 +1679,9 @@ function libCreateCheckbox(name, hovertext) {
     return checkbox;
 }
 
+
 function updatetextfield(e) { logLibC('LibC: set '+e.target.id+' to '+e.target.value); setSetting(e.target.id, e.target.value); }
+
 
 function libCreateTextfield(name, hovertext) {
     var textfield;
@@ -1607,7 +1696,9 @@ function libCreateTextfield(name, hovertext) {
     return textfield;
 }
 
+
 function updateselect(e) { logLibC('LibC: set '+e.target.id+' to '+e.target.options[e.target.selectedIndex].value); setSetting(e.target.id, e.target.options[e.target.selectedIndex].value); }
+
 
 function libCreateSelect(name, hovertext, values) {
     var select, setting, sidx, len, i, temp, option;
@@ -1627,9 +1718,10 @@ function libCreateSelect(name, hovertext, values) {
     return select;
 }
 
+
 function libSettings() {
     var scratchpad, table, temptable, temptablerow, link, verspan, i, len, s, t;
-    
+
         // modules: tied to general tweaks. [<functionmap>,"display name","helptext/hovertext"]
     var settingrows = [
         ['hilights', 'Description Hilights', 'Highlights shadows moving in windows and the building lights.'],
@@ -1754,6 +1846,7 @@ function libSettings() {
     }
 }
 
+
 function createSettingsRow(name, title, srdesc) {
     var table, settingsRow, settingTitle, settingList;
     table = document.getElementById('libc-settingtable').firstElementChild; //gets TBODY
@@ -1773,6 +1866,7 @@ function createSettingsRow(name, title, srdesc) {
     table.appendChild(settingsRow);
 }
 
+
 function addToRow(tdid, title, button) {
     var td, tempspan;
     td = document.getElementById('libc-setting-'+tdid);
@@ -1785,22 +1879,27 @@ function addToRow(tdid, title, button) {
     td.appendChild(document.createElement('br'));
 }
 
+
 function addSettingBox(tdid, title, setting, hover) {
     var box = libCreateCheckbox(tdid+'-extra-'+setting, hover);
     addToRow(tdid, title, box);
 }
+
 
 function addSettingField(tdid, title, setting, hover) {
     var field = libCreateTextfield(tdid+'-extra-'+setting, hover);
     addToRow(tdid, title, field);
 }
 
+
 function addSettingSelect(tdid, title, setting, hover, vals) {
     var select = libCreateSelect(tdid+'-extra-'+setting, hover, vals);
     addToRow(tdid, title, select);
 }
 
+
 function toggleglobal(e) { logLibC('LibC: toggled '+e.target.id); setGlobalSetting(e.target.name, e.target.checked); }
+
 
 function addGlobalSetting(tdid, title, setting, hover) {
     var checkbox = document.createElement('input');
@@ -1814,9 +1913,8 @@ function addGlobalSetting(tdid, title, setting, hover) {
 }
 
 
-
 function runLibC() {
-    var libCalls, i, len;
+    var libGlobalCalls, libCalls, i, len;
     if (getSetting('run-sortpeople') == 'true') { sortpeople(); } //this breaks if not running first. innerHTML editing deletes dom elements
     libGlobalCalls = [
         ['factioncensus', factioncensus],
