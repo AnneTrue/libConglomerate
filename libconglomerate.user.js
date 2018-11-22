@@ -478,6 +478,13 @@ function safebuttons() {
         if (getSetting('safety-extra-revoke') == 'true') { safetyButtons("//form[@name='stronghold']/input[@name='action' and @value='revoke']/../input[@type='submit']", 'disable'); }
         if (getSetting('safety-extra-loadwand') == 'true') { safetyButtons("//a[@class='item_use' and starts-with(text(), 'Load')]", 'wand'); }
         if (getSetting('safety-extra-speech') == 'true') { safebuttons_speech(); }
+        if (getSetting('safety-extra-blessing') == 'true') { safetyButtons("//form[@name='skilluse']/input[@type='submit' and @value='Use Blessing of Inspiration (5 AP, 10 MP)']", 'disable'); }
+        if (getSetting('safety-extra-wisp') == 'true') { safetyButtons("//form[@name='skilluse']/input[@type='submit' and @value='Deactivate Wisp Form (0 AP)']", 'disable'); }
+        if (getSetting('safety-extra-well') == 'true') { safetyButtons("//form[@name='skilluse']/input[@type='submit' and @value='Open Arcane Well (8 AP, 15 MP)']", 'disable'); }
+        if (getSetting('safety-extra-well') == 'true') { safetyButtons("//form[@name='skilluse']/input[@type='submit' and @value='Open Arcane Well (10 AP, 20 MP)']", 'disable'); }
+        if (getSetting('safety-extra-mark') == 'true') { safetyButtons("//form[@name='skilluse']/input[@type='submit' and @value='Create Nexal Mark (1 AP, 10 MP)']", 'disable'); }
+        if (getSetting('safety-extra-mark') == 'true') { safetyButtons("//form[@name='skilluse']/input[@type='submit' and @value='Create Nexal Mark (1 AP, 5 MP)']", 'disable'); }
+        if (getSetting('safety-extra-hself') == 'true') { safetyButtons("//form[@name='skilluse']/input[@type='submit' and @value='Heal Self (1 AP, 6 MP)']", 'disable'); }
     }
 }
 
@@ -1672,6 +1679,11 @@ function libSettings() {
         ['safety', 'b', 'Safe Revoke Button', 'revoke', 'Adds a safety to the Revoke Stronghold button.'],
         ['safety', 'b', 'Safe Speech Buttons', 'speech', 'Adds a safety to Speech/Bullhorn buttons, so that you must enter something before sending.'],
         ['safety', 'b', 'Safe Load Wand', 'loadwand', 'Adds double-click safeties to (re)load spellwand buttons.'],
+        ['safety', 'b', 'Safe Blessing', 'blessing', 'Adds a safety to Advocate Blessing.'],
+        ['safety', 'b', 'Safe Wisp', 'wisp', 'Adds a safety to deactivating Wisp Form on Conduit.'],
+        ['safety', 'b', 'Safe Well', 'well', 'Adds a safety to creating an Arcane Well on Conduit.'],
+        ['safety', 'b', 'Safe Mark', 'mark', 'Adds a safety to creating a Nexal Mark on Conduit.'],
+        ['safety', 'b', 'Safe Heal Self', 'hself', 'Adds a safety to Heal Self on Sorcerer.'],
         ['weaponpane', 'b', 'Print DPA', 'dpa', 'Prints the raw DPA for each attack in drop-downs.'],
         ['weaponpane', 'b', 'Shorten Damage', 'dmg', 'Shortens the damage and accuracy counts in drop-downs.'],
         ['weaponpane', 'b', 'Shorten Shots', 'shots', 'Shortens the shots remaining in drop-downs.'],
