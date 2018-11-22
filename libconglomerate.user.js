@@ -1683,7 +1683,7 @@ function libSettings() {
         ['safety', 'b', 'Safe Wisp', 'wisp', 'Adds a safety to deactivating Wisp Form on Conduit.'],
         ['safety', 'b', 'Safe Well', 'well', 'Adds a safety to creating an Arcane Well on Conduit.'],
         ['safety', 'b', 'Safe Mark', 'mark', 'Adds a safety to creating a Nexal Mark on Conduit.'],
-        ['safety', 'b', 'Safe Heal Self', 'hself', 'Adds a safety to Heal Self on Conduit.'],
+        ['safety', 'b', 'Safe Heal Self', 'hself', 'Adds a safety to Heal Self on Sorcerer.'],
         ['weaponpane', 'b', 'Print DPA', 'dpa', 'Prints the raw DPA for each attack in drop-downs.'],
         ['weaponpane', 'b', 'Shorten Damage', 'dmg', 'Shortens the damage and accuracy counts in drop-downs.'],
         ['weaponpane', 'b', 'Shorten Shots', 'shots', 'Shortens the shots remaining in drop-downs.'],
