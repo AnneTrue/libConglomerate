@@ -142,7 +142,7 @@ td.match-inventory { background-color: #88ccee; }
 .liblink {
   background: none;
   border: none;
-  color: white;
+  color: black;
   text-decoration: underline;
   cursor: pointer;
   margin: 0;
