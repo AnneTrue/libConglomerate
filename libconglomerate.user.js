@@ -317,7 +317,7 @@ function createSortedPersonHTML(person, showhp, showmp) {
         hptext += '</span>'
     }
     if (showmp && person.mp_visible && person.mp_down > 0) {
-        mptext = '<span class=mptext>-' + person.mp_down + '</span>'
+        mptext = '<span class=mptext>m' + person.mp_down + '</span>'
     }
     return '<span class="char" id="char_' + person.id + '"><' + person.html + '>' + hptext + mptext + '</span>';
 }
@@ -400,7 +400,7 @@ function createSortPerson(ppl, allyneutral) {
     } else { logLibC('Error: createSortPerson failed to match character link'); }
 
     // health points
-    temp = /<img(?: title="(\d+)\/(\d+) hit points").+?src="images\/g\/HealthBar_[1-4].gif"/.exec(ppl)
+    temp = /<img(?: title="(\d+)\/(\d+)\s+hit points").+?src="images\/g\/HealthBar_[1-4].gif"/.exec(ppl)
     if (temp) {
         if(temp[1]) {
             // char has first aid and can see hp vals
@@ -425,7 +425,7 @@ function createSortPerson(ppl, allyneutral) {
     } else { logLibC('Error: createSortPerson failed to match character health'); }
 
     // magic points
-    temp = /title="(\d+)\/(\d+) magic points".+?src="images\/g\/MagicBar_([1-4]).gif"/.exec(ppl)
+    temp = /title="(\d+)\/(\d+)\s+magic points".+?src="images\/g\/MagicBar_([1-4]).gif"/.exec(ppl)
     if (temp) {
         retPerson.mp_visible = true;
         retPerson.mp = parseInt(temp[1]);
@@ -1375,6 +1375,7 @@ function getComponentDictionary() {
         'Handful of Grave Dirt': 'common',
         'Healing Herb': 'uncommon',
         'Humerus': 'common',
+        'Kingsize Candy Bar': 'rare',
         'Lead Brick': 'uncommon',
         'Patch of Lichen': 'uncommon',
         'Patch of Moss': 'uncommon',
