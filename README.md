@@ -45,6 +45,11 @@ Assorted userscripts for NexusClash, along with a per-character, per-browser set
   * Safe Learn Buttons adds safeties to learn spellgems, and shortens the learn button. 
   * Safe Speech Buttons disables bullhorn and speech buttons until you enter text into the fields. Prevents you from accidentally sending empty emotes. 
   * Safe Load Spellwand is for wizards: creates a double-click button for loading spellwands. The button reads 'Load?' and once clicked will be enabled and read 'Load'. Clicking again loads your spellwand. 
+  * Safe Blessing is for Advocates: adds a disable safety to the blessing skill.
+  * Safe Wisp is for Conduits: adds a safety to prevent deactivating wisp form by accident.
+  * Safe Well is for Conduits: adds a safety to creating Arcane Wells.
+  * Safe Mark is for Conduits: adds a safety to creating Nexal Marks.
+  * Safe Heal Self is for Sorcerers: adds a safety to Heal Self.
 
 * Thin Character Bars 
   * If a character has full HP, the HP bar is made thinner. 
