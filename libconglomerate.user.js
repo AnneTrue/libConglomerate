@@ -559,6 +559,11 @@ function safebuttons() {
     if (getSetting('safety-extra-repair') == 'true') { safetyButtons("//form[@name='repair']/input[@type='submit' and @value='Repair']", 'disable'); }
     if (getSetting('safety-extra-loadwand') == 'true') { safetyButtons("//a[@class='item_use' and starts-with(text(), 'Load')]", 'wand'); }
     if (getSetting('safety-extra-speech') == 'true') { safebuttons_speech(); }
+    if (getSetting('safety-extra-blessing') == 'true') { safetyButtons("//form[@name='skilluse']/input[@type='submit' and @value='Use Blessing of Inspiration (5 AP, 10 MP)']", 'disable'); }
+    if (getSetting('safety-extra-wisp') == 'true') { safetyButtons("//form[@name='skilluse']/input[@type='submit' and starts-with(@value, 'Deactivate Wisp Form')]", 'disable'); }
+    if (getSetting('safety-extra-well') == 'true') { safetyButtons("//form[@name='skilluse']/input[@type='submit' and starts-with(@value, 'Open Arcane Well')]", 'disable'); }
+    if (getSetting('safety-extra-mark') == 'true') { safetyButtons("//form[@name='skilluse']/input[@type='submit' and starts-with(@value, 'Create Nexal Mark')]", 'disable'); }
+    if (getSetting('safety-extra-hself') == 'true') { safetyButtons("//form[@name='skilluse']/input[@type='submit' and starts-with(@value, 'Heal Self')]", 'disable'); }
 }
 
 
