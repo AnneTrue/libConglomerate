@@ -1,7 +1,7 @@
 # libConglomerate
 Assorted userscripts for NexusClash, along with a per-character, per-browser setting framework.
 
-## Version 3.0.1
+## Version 3.1.0
 ### Complete Feature List:
 * Toggled Settings 
   * Found in the 'Pad' panel in the multi-function pane, below the character's note pad. 
@@ -21,14 +21,6 @@ Assorted userscripts for NexusClash, along with a per-character, per-browser set
   * Double ticks ('') are turned into apostrophes (') due to a bug that occasionally appears in-game. 
   * Messages that are stylised: Attacking a player/pet; darkhearting/cursing a player; Attacking wards, forts, or doors; taking damage (agony curse/defiler poison, etc.); pet attacks, being attacked, rejuves, despawning, death by aura, being summoned; global achievement announces; whispers, speech, emotes featuring at least two quotes ("), bullhorns sometimes; characters attacking/killing others; giving/being given items; crafting; finding an item, or nothing; stepping inside/outside; healing or being healed; losing a status effect; characters becoming visible/invisible; characters casting a glyph. 
 
-* Global - Safe Faction/Character Buttons 
-  * Places safeties on faction page and character page buttons. Is a global feature and not under the button-safety module because you do not need a character to visit these pages. 
-  * Places a safety checkbox next to all the buttons on the 'Buy Skills,' 'Faction,' and 'Character' pages. 
-Recommended only if you worry about accidentally leaving a faction. Otherwise it is a massive slow-down when clicking. 
-
-* Global - Faction Census 
-  * Runs on the faction roster page and creates a tally of all the members. Tells you the number underneath the faction Renown. 
-
 * Description Highlights 
   * Does nothing unless an option is selected. 
   * Hilight Shadows stylises the description to show when there are shadow moving in a building. Good for hunters. 
@@ -38,9 +30,10 @@ Recommended only if you worry about accidentally leaving a faction. Otherwise it
 * Sort Characters 
   * Sorts visible characters into two groups, 'Allies' and 'Enemies' depending on faction politics. 
   * Neutral characters default to 'Enemies.' 
-  * Enemy Sort and Ally Sort can be by HP Percentage (default), Alphabetical (Nexus Clash default), HP Total, HP Total Missing, Levels. HP Total (and Missing) requires the first aid skill to work properly, and HP Percentage does not require first aid but benefits from it. 
-  * Reverse Enemy/Ally Sort simply flips the order they appear in. If you use HP Total Missing, you probably want to enable this to list the most hurt first. 
-  * Display HP requires the first aid skill. It prints the current HP and the amount of HP missing from the character next to their name. Full HP uses black text, missing HP uses pink. Format is +HP-missing 
+  * Enemy Sort and Ally Sort can be by HP Percentage, Alphabetical (Nexus Clash default), HP Total, HP Total Missing, Levels, Magic Points Missing, Magic Points Percentage. HP Total (and Missing) requires the First Aid skill to work properly. HP Percentage does not require first aid, but benefits from it (gains accuracy). Magic Point sorts require the Sense Magic skill. 
+  * Reverse Enemy/Ally Sort simply flips the order they appear in. If you use HP (Or MP) Total Missing, you probably want to enable this to list the most hurt first.
+  * Display HP requires the First Aid skill. It prints the current HP and the amount of HP missing from the character next to their name. Full HP uses black text, missing HP uses pink. Format is +HP-missing 
+  * Display Magic Points requires the Sense Magic skill. It prints the amount of MP missing from a character, next to their name. The colour is dark blue, and is formatted as -missing after the character's name.
   * Sort Neutrals as Allies places unfactioned characters (and neutral politics factioned characters) into the allies group. 
   * Hilight Master's Pets will turn all the pets a character owns blue when you hover over their name. It will also add a hovertext with the total tally of pets that a character has. 
 
@@ -50,9 +43,13 @@ Recommended only if you worry about accidentally leaving a faction. Otherwise it
   * Safe Craft Button adds a safety to crafting items. Includes skill crafting such as FAKs, Lockpicks, Toolboxes, Surgeon's Kits. 
   * Safe Repair Button adds a safety to repairing items. 
   * Safe Learn Buttons adds safeties to learn spellgems, and shortens the learn button. 
-  * Safe Revoke Button adds a safety to the revoke stronghold button. Use it, LTs and Leaders. Please. 
   * Safe Speech Buttons disables bullhorn and speech buttons until you enter text into the fields. Prevents you from accidentally sending empty emotes. 
   * Safe Load Spellwand is for wizards: creates a double-click button for loading spellwands. The button reads 'Load?' and once clicked will be enabled and read 'Load'. Clicking again loads your spellwand. 
+  * Safe Blessing is for Advocates: adds a disable safety to the blessing skill.
+  * Safe Wisp is for Conduits: adds a safety to prevent deactivating wisp form by accident.
+  * Safe Well is for Conduits: adds a safety to creating Arcane Wells.
+  * Safe Mark is for Conduits: adds a safety to creating Nexal Marks.
+  * Safe Heal Self is for Sorcerers: adds a safety to Heal Self.
 
 * Thin Character Bars 
   * If a character has full HP, the HP bar is made thinner. 
@@ -105,7 +102,7 @@ Recommended only if you worry about accidentally leaving a faction. Otherwise it
 
 * Alchemy Interface 
   * A massive overhaul with many features. Definitely recommended to enable because it is one of the greatest features. Based upon but vastly improved over the version by ChesterKatz. Includes its own 'Help Page' as the 'Help: Alchemy Assistant' tab in the recipe pane. 
-  * Uses colours that are friendly to individuals who are colour-blind. 
+  * Uses colours that are friendlier to individuals who are colour-blind. 
   * Reformats the recipe pane into a human-comprehensible tabular system that can be collapsed/expanded. Remembers the toggle state of tabs. Has buttons to toggle all tabs open or closed at the top of the pane. 
   * Hilights the availability of components in a recipe. Brown for item in the safe/footlocker, blue for item in the inventory. Can be disabled with "Suppress Component Hilighting" option. Caveat: Cannot distinguish between one item in the inventory and more than one, so recipes calling for more than one may mark the multiples are present when they are not. 
   * Hilights the entire recipe if it is able to be brewed. Brown if you have all the components in the safe, blue if they are all in your inventory. 
@@ -129,11 +126,7 @@ Recommended only if you worry about accidentally leaving a faction. Otherwise it
   * Retrieve Item Key: Recommended E. Thrown weapon users, rejoice! Speeds up attacks immensely. Use with the default pick-up module enabled. 
   * Enter/Exit Key: Recommended B. To enter or exit a building quickly. Does not work to enter with a closed door if you have certain skills that bypass doors through separate means (stepping of the corner). 
   * Recapture Key: Recommended L. For retrieving captured standards before pets maul you. Use with the recapture default module. 
-
-* Pet Target Bug-Fix 
-  * Changes pet links to be clickable. When you click them, they are targeted in the pet attack pane. 
-  * Caveat: Does not remember the selected pet between attacks! You must retarget the pet on each page load. 
-  * Does not work on Maeval. Shamblers are fine. 
+  * Power Repair/Remove Key: Recommended J. For cutting/restoring power to a tile.
 
 * Remove Gem Colour 
   * Requires spellcraft, only applies to a faction's safe and not your footlocker or inventory. 
