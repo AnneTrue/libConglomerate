@@ -1,13 +1,16 @@
 // ==UserScript==
 // @name           LibC
+// @version        3.1.0
 // @description    Lib's Conglomerated Scripts
-// @include        *nexusclash.com/modules.php?name=Game*
-// @include        *www.nexusclash.com/modules.php?name=Game*
-// @exclude        *nexusclash.com/modules.php?name=Game&op=disconnect
-// @exclude        *www.nexusclash.com/modules.php?name=Game&op=disconnect
+// @namespace      https://github.com/AnneTrue/
+// @match          *://nexusclash.com/modules.php?name=Game*
+// @match          *://www.nexusclash.com/modules.php?name=Game*
+// @exclude        *://nexusclash.com/modules.php?name=Game&op=disconnect
+// @exclude        *://www.nexusclash.com/modules.php?name=Game&op=disconnect
 // @grant          GM_getValue
 // @grant          GM_setValue
-// @version     3.1.0
+// @grant          GM_getResourceText
+// @resource       libCCSS styleconglomerate.css
 // ==/UserScript==
 
 (function () {
@@ -20,23 +23,36 @@ var libCLoggingVerbose = false;
 
 
 //#############################################################################
-// boilerplate functions:
+// Boilerplate functions
 
-// takes list of css strings to inject into the global style sheet
-function addGlobalStyle(list) {
-    var head, style, i, len, css= '';
+// platform support: GM is provided by greasemonkey, if not assume chrome and use localStorage
+try {
+    if (!this.GM_getValue || (this.GM_getValue.toString && this.GM_getValue.toString().indexOf('not supported') > -1)) {
+        this.GM_getValue = (key, def) => { localStorage[key] || def; };
+        this.GM_setValue = (key, value) => { localStorage[key] = value; return true; };
+        this.GM_deleteValue = function (key) { return delete localStorage[key]; };
+    }
+} catch (e) { logLibC('GM_set/get error: ' + e.message); }
+
+
+function addGlobalStyle(injectCSS) {
+    // injects a string into the global style sheet
+    var head, style;
     head = document.getElementsByTagName('head')[0];
     if (!head) { return; }
     style = document.createElement('style');
     style.type = 'text/css';
-    len = list.length;
-    for (i = 0; i < len; i++) { css += list[i]; }
-    style.innerHTML = css;
+    style.innerHTML = injectCSS;
     head.appendChild(style);
 }
 
-    
-// generic functions
+// custom CSS for script
+// addGlobalStyle(GM_getResourceText('libCCSS'));
+
+
+//#############################################################################
+// Generic functions
+
 // returns number of char c in x
 function timesCharExist(x, c){ var t=0,l=0;c=c+''; while(l=x.indexOf(c,l)+1)++t; return t; }
 
@@ -53,147 +69,100 @@ function isNormalInteger(str) { var n = ~~Number(str); return String(n) === str 
 function fluffDigit(x) { if (x<10) { x = '0'+x; } return x; }
 
 
-// platform support: GM is provided by greasemonkey, if not assume chrome and use localStorage
-try {
-    if (!this.GM_getValue || (this.GM_getValue.toString && this.GM_getValue.toString().indexOf('not supported') > -1)) {
-        this.GM_getValue = function (key, def) { return localStorage[key] || def; };
-        this.GM_setValue = function (key, value) { localStorage[key] = value; return true; };
-        this.GM_deleteValue = function (key) { return delete localStorage[key]; };
-    }
-} catch (e) { logLibC('GM_set/get error:\n' + e.message); }
-
-
-// global info: used to determine if script can safely run without errors (and also character info)
-var charinfodiv = null, levelclass = null, levelclassname = '', charinfoid = null;
-if (document.getElementById('CharacterInfo')) { //get general data from the page
-    charinfodiv = document.getElementById('CharacterInfo');
+//#############################################################################
+// Global info: used to determine if script can safely run without errors
+var charinfodiv = document.getElementById('CharacterInfo');
+function getCharacterInfo(charinfodiv) {
+    // returns an object with the character's level, class name, ap, mp, hp, and ID number.
+    if (!charinfodiv) { return; }
+    var charinfo = {'level':null, 'class':'', 'id':null, 'ap':null, 'mp':null, 'hp':null},
+        levelclass,
+        levelclassdata,
+        apNode,
+        apMatch,
+        hpNode,
+        hpMatch,
+        mpNode,
+        mpMatch;
     levelclass = charinfodiv.getElementsByTagName('td')[1];
-    levelclassname = /Level [0-9]+ (.+)/.exec(levelclass.innerHTML)[1];
-    charinfoid = charinfodiv.getElementsByTagName('a')[0].href.match(/id=(\d+)$/)[1];
+    levelclassdata = /Level ([0-9]{1,3}) (.+)/.exec(levelclass.innerHTML);
+    charinfo.level = levelclassdata[1];
+    charinfo.class = levelclassdata[2];
+    charinfo.id = charinfodiv.getElementsByTagName('a')[0].href.match(/character&id=(\d+)$/)[1];
+    apNode = document.evaluate(
+        "//td/a[contains(@title, 'Action Points')]",
+        charinfodiv, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null
+    ).snapshotItem(0);
+    apMatch = apNode.textContent.match(/(\d+) AP/);
+    if (apMatch) {
+        charinfo.ap = parseInt(apMatch[1]);
+    }
+    hpNode = document.evaluate(
+        "//td/a[contains(@title, 'Hit Points')]",
+        charinfodiv, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null
+    ).snapshotItem(0);
+    hpMatch = apNode.textContent.match(/(\d+) HP/);
+    if (hpMatch) {
+        charinfo.hp = parseInt(hpMatch[1]);
+    }
+    mpNode = document.evaluate(
+        "//td/a[contains(@title, 'Magic Points')]", charinfodiv, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null
+    ).snapshotItem(0);
+    mpMatch = apNode.textContent.match(/(\d+) MP/);
+    if (mpMatch) {
+        charinfo.mp = parseInt(mpMatch[1]);
+    }
+    return charinfo;
 }
 
-
-// custom CSS for script
-var injectedcss = [
-    'span.hptext { font-size: xx-small; color: #ff0099; }',
-    'span.hptext2 { font-size: xx-small; color: black; }',
-    'tr.petstatus-aplow { background-color: #999999; }',
-    'tr.petstatus-apcritical { background-color: #999933; }',
-    'tr.petstatus-mpsurplus { background-color: #cc6677; color:black; }',
-    'tr.petstatus-nextpet td { border-top: 2px solid black; border-bottom: 2px solid black; }',
-    'tr.petstatus-nextpet2 td { border-top: 1px solid black; border-bottom: 1px solid black; }',
-    'tr.recipe-complete { background-color: #dddddd; }',
-    'tr.recipe-partial { background-color: #bbbbbb; }',
-    'tr.recipe-empty { background-color: #999999; color: #444444; }',
-    'span.component-rare { color: #882255; }',
-    'span.component-uncommon { color: #117733; }',
-    'span.component-common { }',
-    'td.component-rare { color: #882255; font-weight: bold; }',
-    'td.component-uncommon { color: #117733; font-weight: bold; }',
-    'td.component-common { font-weight: bold; }',
-    'span.component-undefined { font-style: italic; }',
-    'span.component-fixed { font-style: italic; }',
-    'span.immutable { font-weight: bold; }',
-    'span.match-safe { background-color: #ddcc77; }',
-    'span.match-inventory { background-color: #88ccee; }',
-    'span.safeEmpty { color: #000000; font-weight: bold; }',
-    'span.safeLow { background-color: #cc6677; }',
-    'span.safeMid { background-color: #ddcc77; }',
-    'span.safeHigh { background-color: #88ccee; }',
-    'input.retrieveSafe { background: none; border: none; color: blue; text-decoration: underline; cursor: pointer; margin: 0; padding: 0; display: inline; }',
-    'tr.recipe-complete.completionlevel-inventory { background-color: #44aa99; }',
-    'tr.recipe-complete.completionlevel-safe { background-color: #999933; }',
-    'option.safeitem-rare { background-color: #882255; color: #ffffff; }',
-    'option.safeitem-uncommon { background-color: #117733; color: #ffffff; }',
-    'option.safeitem-common { background-color: #999999; color: #ffffff; }',
-    'tr.recipe-partial form { display: none; }',
-    'td.recipename { width: 99px; }',
-    'td.recipelist { width: 170px; }',
-    'td.summarycell { width: 26px; }',
-    'td.summarycell.summary-empty { background-color: #777777; }',
-    'td.match-safe { background-color: #ddcc77; }',
-    'td.match-inventory { background-color: #88ccee; }',
-    'td.MageHealthBar { background-repeat: no-repeat; background-position: left bottom; margin-bottom: 0px; position: relative; top: -10px; background-image: url(data:image/gif;base64,R0lGODlhAQAFAIABAACZAP%2F%2F%2FywAAAAAAQAFAAACAoRdADs%3D); }',
-    'td.MageHealthBar2 { background-repeat: no-repeat; background-position: left bottom; margin-bottom:0px; background-image: url(data:image/gif;base64,R0lGODdhAQAFAIACAAAAAP8AACwAAAAAAQAFAEACAoxdADs=); }',
-    '.bar{ line-height=: 1px; height: 5px; display: inline-block; margin: 0 0 0 0; padding: 0 0 0 0; position: absolute; top: 20px; #bottom: 1px; background-color: #ff0000; left: 0px; }',
-    '.bar2{ line-height=: 1px; height: 5px; display: inline-block; margin: 0 0 0 0; padding: 0 0 0 0; position: absolute; top: 20px; #bottom: 1px; background-color: #00ff00; left: 0px; }',
-    '.numberdiv{ display: inline-block; padding: 0 0 0 0; margin: 0 0 0 0; width: 20px; position: relative; }',
-    'td.MageNoWrap { white-space: nowrap ! important; }',
-    'a.MageHide { display: none ! important; }',
-    'img.MageBarBck { position: absolute; left: 1; top: 18; display: inline; z-index: 0 }',
-    'img.MageBar { position: absolute; left: 1; top: 18; display: inline; z-index: 1 }',
-    'div.MagePetHit { font-size: smaller; color: lightcoral ! important; padding-left: 4em; }',
-    'div.MagePetHitMe { font-size: smaller; color: red ! important; padding-left: 4em; }',
-    'div.MagePetKill { font-size: smaller; color: crimson; padding-left: 4em; }',
-    'div.MagePetMiss { font-size: smaller; color: #CAA083; padding-left: 4em; }',
-    'div.MagePetHealOthers { font-size: smaller; color: #5050aa; padding-left: 4em; }',
-    'div.MagePetHealMe { font-size: smaller; color: #0808aa; padding-left: 4em; }',
-    'div.MagePetRejuv { font-size: smaller; color: #aa50aa; padding-left: 4em; }',
-    'div.MagePetDespawn { font-size: smaller; color: #ff8000; padding-left: 4em;}',
-    'div.MageAttackHit { color: red ! important; }',
-    'div.MageAttackMiss { color: deeppink; }',
-    'div.MageAttacked { color: red; font-weight: 600; }',
-    'div.MageAttackedbyEnvironment { color: red; font-weight: 100; }',
-    'div.MageHealed { color: #0808aa; }',
-    'div.MageAchievement { font-size: smaller; padding-left: 4em; }',
-    'span.MageAchievementColour { color: #aa0000; }',
-    'div.MageSpeech { color: dodgerblue; }',
-    'div.MageAction { color: #aaaaff; }',
-    'div.MageWhisper{ color: MediumOrchid; }',
-    'span.MageMe{ color: darkblue; }',
-    'div.MageReceivedSomething{ color: #ff8040; }',
-    'div.MageCraft{ color: #8d4f9d; }',
-    'div.MageSearchNothing{ color: #8c8c55; }',
-    'div.MageSearchYay{ color: #8c8c00; }',
-    'span.libshadows{ color: #dd0101; font-weight: bold; }',
-    'span.liblights{ color: dodgerblue; }',
-    'span.liblightsoff{ color: #bf4020; }',
-    'div.libfaded { color: red; }',
-    'div.libkill { color: red; font-weight: 600; }',
-    'div.libgave { color: #bf4020; }',
-    'div.libsummon { color: red; ! important; }',
-    'div.libfort { color: #9900ff; font-size: smaller; }',
-    'span.libgood { color: #11dd11; }',
-    'span.libbad { color: #dd1111; }',
-    'table.libc-settingtable { width: 100%; }',
-    'tr.libc-settingrow { background-color: #dddddd; }',
-    'td.libc-settingname { width: 20px; }',
-    'td.libc-settinglist { width: 90px; }',
-    'span.libc-settingspan { background-color: #bbbbbb; border: 1px dotted black; }',
-    'input.liblink { background: none; border: none; color: white; text-decoration: underline; cursor: pointer; margin: 0; padding: 0; display: inline; }',
-    'span.char { white-space: nowrap; }'
-    ];
-// now inject CSS
-addGlobalStyle(injectedcss);
+var charinfo;
+try {
+    charinfo = getCharacterInfo(charinfodiv);
+} catch (err) { logLibC('Error parsing charinfo: '+err.message); }
 
 
 //#############################################################################
-// tweak 0: highlight shadows from outside buildings
+// Tweak: highlight shadows from outside buildings, lights status, and targets in a tile
 function showhilights() {
-    var locSnapShot, desc, descString, descdiv, descMatch, puforms, targetdesc, pucount;
-    locSnapShot = document.evaluate("//td[@valign='top']/b/u", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+    var locSnapShot, desc, descString, descdiv, descMatch, descPieces, puforms, targetdesc, pucount;
+    locSnapShot = document.evaluate("//td[@valign='top']/div[@class='tile_description']/img", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
 
-    if (locSnapShot.snapshotLength === 0) { return; } // no location description to find
+    if (locSnapShot.snapshotLength === 0) { return; }
 
-    desc = locSnapShot.snapshotItem(0).parentElement.nextElementSibling.nextElementSibling.nextSibling; //please don't cringe
+    desc = locSnapShot.snapshotItem(0).nextSibling;
 
     // lights and shadows
     descString = desc.textContent;
     descdiv = document.createElement('div');
     descdiv.id = 'libdesc';
-    descMatch = descString.match(/(([\s\S]+)?(The lights are on inside the building|The building lights illuminate the area|The building windows are dark|The building lights are off|The lights inside the building appear to be off|The lights seem to be off throughout the neighorhood|The building is dark\. In fact, the lights seem to be off all throughout the neighorhood|The lights seem to be off throughout the neighorhood))?(([\s\S]+)?(There are several shadows moving in the windows|The occasional shadow can be glimpsed moving in the windows))?([\s\S]+)/);
-    if (descMatch) { desctextmatches(descdiv, descMatch); }
-    else { descdiv.appendChild(document.createTextNode(descString)); } // if no match, just put the string back where it was
+    descMatch = descString.match(/(?:([\s\S]+)?(The lights are on inside the building|The building lights illuminate the area|The building windows are dark|The building lights are off|The lights inside the building appear to be off|The lights seem to be off throughout the neighorhood|The building is dark\. In fact, the lights seem to be off all throughout the neighorhood|The lights seem to be off throughout the neighorhood))?(?:([\s\S]+)?(There are several shadows moving in the windows|The occasional shadow can be glimpsed moving in the windows))?([\s\S]+)/);
+    // Groups (1: firsttext) (2: lightstatus) (3: middletext) (4: shadowstatus) (5: lasttext)
+    if (descMatch) {
+        descPieces = {
+            'firsttext': descMatch[1],
+            'lightstatus': descMatch[2],
+            'middletext': descMatch[3],
+            'shadowstatus': descMatch[4],
+            'lasttext': descMatch[5],
+        };
+        desctextmatches(descdiv, descPieces);
+    } else {
+        // if no match, just put the full description into the new div
+        descdiv.appendChild(document.createTextNode(descString));
+    }
 
     // targets/items set up in location
-    if (getSetting('hilights-extra-targets') == 'true') { //try to add number of targets
+    if (getSetting('hilights-extra-targets') == 'true') {
         puforms = document.evaluate("//form[@name='pickup']", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
         targetdesc = document.createElement('span');
         if (puforms.snapshotLength == 1) {
             pucount = puforms.snapshotItem(0).getElementsByTagName('select')[0].length;
             targetdesc.className = 'liblights'; //reusing dodgerblue css
-            if (pucount == 1) { targetdesc.appendChild(document.createTextNode(' There is an item on the floor.'));
-            } else { targetdesc.appendChild(document.createTextNode(' There are '+pucount+' items on the floor.')); }
+            if (pucount == 1) {
+                targetdesc.appendChild(document.createTextNode(' There is an item on the floor.'));
+            } else {
+                targetdesc.appendChild(document.createTextNode(' There are '+pucount+' items on the floor.'));
+            }
         }
     descdiv.appendChild(targetdesc);
     desc.parentNode.insertBefore(descdiv, desc);
@@ -202,47 +171,46 @@ function showhilights() {
 }
 
 
-function desctextmatches(descdiv, descMatch) {
+function desctextmatches(descdiv, descPieces) {
     // boilerplate code for lights/shadows
     var lights, shadows;
 
-    //descMatch group elements:
-        //2: firsttext 3: lightstatus 4:(toss) 5: middletext 6: shadowstatus 7: lasttext
+    descdiv.appendChild(document.createTextNode(descPieces.firsttext));
 
-    descdiv.appendChild(document.createTextNode(descMatch[2])); // first text as node
-
-    // lights
-    if (descMatch[3]) {
+    // if lights enabled, set span's light class to on/off; else just make it text
+    if (descPieces.lightstatus) {
         lights = document.createElement('span');
-        // create span: if lights enabled, set light class to on/off; else just make it text
         if (getSetting('hilights-extra-lights') == 'true') {
-            if (descMatch[3].match(/(The lights are on inside the building|The building lights illuminate the area)/)) {
+            if (descPieces.lightstatus.match(/(The lights are on inside the building|The building lights illuminate the area)/)) {
                 lights.className = 'liblights';
             }
-            else if (descMatch[3].match(/(The building windows are dark|The building lights are off|The lights inside the building appear to be off|The lights seem to be off throughout the neighorhood|The building is dark\. In fact, the lights seem to be off all throughout the neighorhood|The lights seem to be off throughout the neighorhood)/)) {
+            else if (descPieces.lightstatus.match(/(The building windows are dark|The building lights are off|The lights inside the building appear to be off|The lights seem to be off throughout the neighorhood|The building is dark\. In fact, the lights seem to be off all throughout the neighorhood|The lights seem to be off throughout the neighorhood)/)) {
                 lights.className = 'liblightsoff';
             }
         }
-        lights.appendChild(document.createTextNode(descMatch[3]));
+        lights.appendChild(document.createTextNode(descPieces.lightstatus));
         descdiv.appendChild(lights);
     }
 
-    if (descMatch[5]) { descdiv.appendChild(document.createTextNode(descMatch[5])); } // middle text
+    if (descPieces.middletext) {
+        descdiv.appendChild(document.createTextNode(descPieces.middletext));
+    }
 
-    // shadows
-    if (descMatch[6]) {
+    if (descPieces.shadowstatus) {
         shadows = document.createElement('span');
-        if (getSetting('hilights-extra-shadow') == 'true') { shadows.className = 'libshadows'; }
-        shadows.appendChild(document.createTextNode(descMatch[6]));
+        if (getSetting('hilights-extra-shadow') == 'true') {
+            shadows.className = 'libshadows';
+        }
+        shadows.appendChild(document.createTextNode(descPieces.shadowstatus));
         descdiv.appendChild(shadows);
     }
 
-    descdiv.appendChild(document.createTextNode(descMatch[7]));
+    descdiv.appendChild(document.createTextNode(descPieces.lasttext));
 }
 
 
 //#############################################################################
-// tweak 1: sort people by alliances and health, print health
+// Tweak: sort people by alliances and health, print health
 function sortpeople() {
     var peoplematch = /There (is|are) (\d+) other (person|people) here, (.*?>)\./.exec(document.documentElement.getElementsByTagName('body')[0].innerHTML);
     var ppl, person, i, len, count, h;
@@ -423,7 +391,7 @@ function eunhighlightpet(e) {
 
 
 //#############################################################################
-// tweak 2: Button Safeties
+// Tweak: Button Safeties
 function hiddentoggle(e) {
     var targetbutton = e.target.nextElementSibling;
     if (e.target.checked) { targetbutton.style.visibility = 'visible'; }
@@ -493,19 +461,12 @@ function createDoubleClickButton(btn) {
 
 
 function safebuttons() {
-    var loc = location + '';
-    if (!charinfoid && getGlobalSetting('safebuttons') == 'true') {
-        if (loc.match(/buyskills|executepurchase|faction&do=view|character/)) { safetyButtons("//input[@type='submit']", 'disable'); }
-    }
-    if (charinfoid) {
-        if (getSetting('safety-extra-drop') == 'true') { safetyButtons("//a[@class='item_drop']", 'hide'); }
-        if (getSetting('safety-extra-learn') == 'true') { safetyButtons("//a[@class='item_use' and starts-with(text(), 'Learn')]", 'hide'); }
-        if (getSetting('safety-extra-craft') == 'true') { safetyButtons("//form[@name='craft']/input[@type='submit' and @value='Craft']", 'disable'); safetyButtons("//form[@name='skill_craft']/input[@type='submit']", 'disable'); }
-        if (getSetting('safety-extra-repair') == 'true') { safetyButtons("//form[@name='repair']/input[@type='submit' and @value='Repair']", 'disable'); }
-        if (getSetting('safety-extra-revoke') == 'true') { safetyButtons("//form[@name='stronghold']/input[@name='action' and @value='revoke']/../input[@type='submit']", 'disable'); }
-        if (getSetting('safety-extra-loadwand') == 'true') { safetyButtons("//a[@class='item_use' and starts-with(text(), 'Load')]", 'wand'); }
-        if (getSetting('safety-extra-speech') == 'true') { safebuttons_speech(); }
-    }
+    if (getSetting('safety-extra-drop') == 'true') { safetyButtons("//a[@class='item_drop']", 'hide'); }
+    if (getSetting('safety-extra-learn') == 'true') { safetyButtons("//a[@class='item_use' and starts-with(text(), 'Learn')]", 'hide'); }
+    if (getSetting('safety-extra-craft') == 'true') { safetyButtons("//form[@name='craft']/input[@type='submit' and @value='Craft']", 'disable'); safetyButtons("//form[@name='skill_craft']/input[@type='submit']", 'disable'); }
+    if (getSetting('safety-extra-repair') == 'true') { safetyButtons("//form[@name='repair']/input[@type='submit' and @value='Repair']", 'disable'); }
+    if (getSetting('safety-extra-loadwand') == 'true') { safetyButtons("//a[@class='item_use' and starts-with(text(), 'Load')]", 'wand'); }
+    if (getSetting('safety-extra-speech') == 'true') { safebuttons_speech(); }
 }
 
 
@@ -545,7 +506,7 @@ function safebuttons_speech() {
 
 
 //#############################################################################
-// tweak 3: Thin Bars for Full Health and Mana
+// Tweak: Thin Bars for Full Health and Mana
 function tweakbars() {
     var i, len, healthbarimages, manabarimages;
     healthbarimages = document.evaluate("//img[@src='images/g/HealthBar_1.gif']", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -558,7 +519,7 @@ function tweakbars() {
 
 
 //#############################################################################
-// tweak 4: Color Message History (and make message box bigger and resizable)
+// Tweak: Color Message History (and make message box bigger and resizable)
 function messagehistory() {
     var messages = document.getElementById('Messages');
     if (!messages) { return; }
@@ -652,7 +613,7 @@ function messagereplacer(liststring, match, operation, extra) {
 
 
 //#############################################################################
-// tweak 5: Tweak the weapon selection to print Raw DPA and shorten details
+// Tweak: Changes the attack panes to print Raw DPA and shorten details
 
 // display damage per action
 function wpSDPA (option) {
@@ -723,7 +684,7 @@ function weaponpane() {
 
 
 //#############################################################################
-// tweak 6: Default Item Pickup to Weapons
+// Tweak: Default Item Pickup to Weapons
 function pickupdefaults() {
     var i, len, temp, puforms, puform, pubox, puboxopt, pnum, indexArray = [], matchers = ['drink','food','rock','knife','hatchet','misc','null'], priorities = [];
     var drinkmatch = /(.+, a(n)? )?(Bottle of .+|Absinthe|Vial of .+)/;
@@ -767,12 +728,18 @@ function pickupdefaults() {
 
 
 //#############################################################################
-// tweak 7: Warning Headers
+// Tweak: Warning Headers
 function warningheaders() {
-    if (!charinfodiv) { return; } // need char info, else quit
-    var firstfont = charinfodiv.getElementsByTagName('font')[0], secondfont = charinfodiv.getElementsByTagName('font')[1], thirdfont = charinfodiv.getElementsByTagName('font')[2], panetitles = document.getElementsByClassName('panetitle');
-    var headercolor = '', headertitle = '';
-    var i, len, temp, moves, lowAP, lowHP;
+    if (!charinfodiv) { return; }
+    var headercolor = '',
+        headertitle = '',
+        panetitles = document.getElementsByClassName('panetitle'),
+        i,
+        len,
+        temp,
+        moves,
+        lowAP,
+        lowHP;
     lowAP = 13; //defaults
     if (isNormalInteger(getSetting('warnheaders-extra-ap'))) { lowAP = parseInt(getSetting('warnheaders-extra-ap')); }
     setSetting('warnheaders-extra-ap', lowAP);
@@ -781,20 +748,15 @@ function warningheaders() {
     setSetting('warnheaders-extra-hp', lowHP);
 
     // character/login pane: charinfodiv
-    if (Number(secondfont.innerHTML.match(/\d+/)) < lowHP) {
-        secondfont.parentNode.style.border = '3px solid crimson';
-        secondfont.parentNode.parentNode.parentNode.parentNode.style.border = '2px solid crimson';
-        secondfont.parentNode.parentNode.title = 'LOW HEALTH';
-        headercolor = 'crimson'; headertitle = 'LOW HP';
-    } else if (Number(firstfont.innerHTML.match(/\d+/)) < lowAP) {
-        firstfont.parentNode.parentNode.style.border = '1px solid #fa8000';
-        firstfont.parentNode.parentNode.style.borderTop = '3px solid #fa8000';
-        firstfont.parentNode.parentNode.style.borderBottom = '3px solid #fa8000';
-        firstfont.parentNode.parentNode.title = 'LOW AP';
-        headercolor = 'gold'; headertitle = 'LOW AP';
+    if (charinfo.hp < lowHP) {
+        headercolor = 'crimson';
+        headertitle = 'LOW HP';
+    } else if (charinfo.ap < lowAP) {
+        headercolor = 'gold';
+        headertitle = 'LOW AP';
     }
 
-    // the headers/spacers between different game sections
+    // headings between game sections (e.g. description pane, attack pane, etc.)
     len = panetitles.length;
     for (i = 0; i < len; i++) {
         temp = panetitles[i];
@@ -814,7 +776,7 @@ function warningheaders() {
 
 
 //#############################################################################
-// tweak 8: Save Forms
+// Tweak: Save Forms
 function safestore(name, path) {
     var selects = document.evaluate(path, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null), select;
     if (selects.snapshotLength === 0) { return; }
@@ -866,7 +828,7 @@ function saveForms() {
 
 
 //#############################################################################
-// tweak 9: Pet Interface Overhaul
+// Tweak: Pet Interface Overhaul
 //GLOBALS
 var petCountSurplus = null, petAPLow = null, petAPMid = null;
 
@@ -955,39 +917,55 @@ function getTick() {
 
 
 //#############################################################################
-// tweak 10: Alchemy Interface Overhaul
+// Tweak: Alchemy Interface Overhaul
+//GLOBALS
+var alchemyComponents = getComponentDictionary(),
+    tempSI,
+    inventoryItems,
+    alchemyShowCount,
+    alchemySafeButton,
+    alchemyLowCount,
+    alchemyMidCount,
+    alchemySuppressHilight,
+    alchemySuppressLW,
+    recipePane,
+    shortNames = getShortNames(),
+    fixedComponents = getFixedComponents(),
+    safeItems,
+    safeStatus;
+
 function alchemytweak() {
-    character = parseCharacterInfo();
-    if (character) {
-        var panes = document.evaluate("//tbody[tr/td/div[@class='panetitle']='Recipe Tracker']/tr[last()]/td",document,null,XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,null);
-        components = getComponentDictionary();
-        if (getSetting('alchemytweak-extra-alwayshilight') == 'true' || panes.snapshotLength == 1) { tempSI = parseSafeItems(); inventoryItems = parseInventoryItems(); }
-        if (panes.snapshotLength != 1) { return; }
-        alchemyShowCount = (getSetting('alchemytweak-extra-count-show') == 'true');
-        alchemySafeButton = (getSetting('alchemytweak-extra-safebutton') == 'true');
-        alchemyLowCount = 6;
-        if (isNormalInteger(getSetting('alchemytweak-extra-count-low'))) { alchemyLowCount = parseInt(getSetting('alchemytweak-extra-count-low')); }
-        setSetting('alchemytweak-extra-count-low', alchemyLowCount); //hack to set default if unset
-        alchemyMidCount = 12;
-        if (isNormalInteger(getSetting('alchemytweak-extra-count-mid'))) { alchemyMidCount = parseInt(getSetting('alchemytweak-extra-count-mid')); }
-        setSetting('alchemytweak-extra-count-mid', alchemyMidCount);
-        alchemySuppressHilight = (getSetting('alchemytweak-extra-suppress') == 'true');
-        alchemySuppressLW = (getSetting('alchemytweak-extra-suppresslw') == 'true');
-        var panetitle = document.evaluate("//tbody[tr/td/div[@class='panetitle']='Recipe Tracker']/tr/td/div[@class='panetitle']",document,null,XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,null).snapshotItem(0);
-        recipePane = panes.snapshotItem(0);
-        shortNames = getShortNames();
-        fixedComponents = getFixedComponents();
-        //tempSI = parseSafeItems(); //moved to start
-        safeItems = tempSI[0]; safeStatus = tempSI[1];
-        //inventoryItems = parseInventoryItems();
-        parseRecipes(character, recipePane);
-        setToggleAll(panetitle);
-        setToggleListeners();
+    var panetitle;
+    var panes = document.evaluate(
+        "//tbody[tr/td/div[@class='panetitle']='Recipe Tracker']/tr[last()]/td",
+        document, null,XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null
+    );
+    if (panes.snapshotLength !== 1) { return; }
+    if (getSetting('alchemytweak-extra-alwayshilight') == 'true' || panes.snapshotLength === 1) {
+        tempSI = parseSafeItems();
+        inventoryItems = parseInventoryItems();
     }
+    alchemyShowCount = (getSetting('alchemytweak-extra-count-show') == 'true');
+    alchemySafeButton = (getSetting('alchemytweak-extra-safebutton') == 'true');
+    alchemyLowCount = 6;
+    if (isNormalInteger(getSetting('alchemytweak-extra-count-low'))) { alchemyLowCount = parseInt(getSetting('alchemytweak-extra-count-low')); }
+    setSetting('alchemytweak-extra-count-low', alchemyLowCount); //hack to set default if unset
+    alchemyMidCount = 12;
+    if (isNormalInteger(getSetting('alchemytweak-extra-count-mid'))) { alchemyMidCount = parseInt(getSetting('alchemytweak-extra-count-mid')); }
+    setSetting('alchemytweak-extra-count-mid', alchemyMidCount);
+    alchemySuppressHilight = (getSetting('alchemytweak-extra-suppress') == 'true');
+    alchemySuppressLW = (getSetting('alchemytweak-extra-suppresslw') == 'true');
+    panetitle = document.evaluate("//tbody[tr/td/div[@class='panetitle']='Recipe Tracker']/tr/td/div[@class='panetitle']",document,null,XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,null).snapshotItem(0);
+    recipePane = panes.snapshotItem(0);
+    safeItems = tempSI[0];
+    safeStatus = tempSI[1];
+    parseRecipes(recipePane);
+    setToggleAll(panetitle);
+    setToggleListeners();
 }
 
 
-function parseRecipes(character, recipePane) {
+function parseRecipes(recipePane) {
     var complete = [], partial = [], empty = [], i, htmltable;
     var recipes = recipePane.innerHTML.split('<br>');
     for (i = 0; i < recipes.length; i++) {
@@ -1026,10 +1004,11 @@ function createComponentHelper() {
     var cRow, rowClass, fullDisplay = 'none', summaryDisplay = 'table-row', comp, cString, cssClass, safeRetrieve, count;
     if (getSetting('alchemy-toggle-componentshelp') == 'full') { fullDisplay = 'table-row'; summaryDisplay = 'none'; }
     rowClass = 'recipe-partial completionlevel-short'; cString = '';
-    for (comp in components[character.Class]) {
-        if (!components[character.Class].hasOwnProperty(comp)) { continue; }
-        safeRetrieve = null, count = '';
-        cssClass = 'component-' + components[character.Class][comp];
+    for (comp in alchemyComponents) {
+        if (!alchemyComponents.hasOwnProperty(comp)) { continue; }
+        safeRetrieve = null;
+        count = '';
+        cssClass = 'component-' + alchemyComponents[comp];
         if (safeItems[comp]) {
             cssClass += ' match-safe';
             safeRetrieve = getSafeItem(comp);
@@ -1044,21 +1023,54 @@ function createComponentHelper() {
 
 
 function formatRecipe(recipe, rowClass) {
-    var i, len, completionLevel = 'inventory', componentString = '', buttonHtml = '', potionName = '', componentList, recipeComponents, componentCount = 0, inventoryCount = 0, safeCount = 0, preserved = 'saved', safeRetrieve = '', safeRetrieveType = '', safeRetrieveForm = '', safePotionCountSpan = '', safePotionCountShort = '', safePotionCount, retform = '<br>', placeform = '', fullDisplay = 'table-row', summaryDisplay = 'none', shortName, cssClass, component, count, potRetVal, potRetType;
-    var empty = (rowClass == 'recipe-empty'), partial = (rowClass == 'recipe-partial');
+    var i,
+        len,
+        completionLevel = 'inventory',
+        componentString = '',
+        buttonHtml = '',
+        potionName = '',
+        componentList,
+        recipeComponents,
+        componentCount = 0,
+        inventoryCount = 0,
+        safeCount = 0,
+        preserved = 'saved',
+        safeRetrieve = '',
+        safeRetrieveType = '',
+        safeRetrieveForm = '',
+        safePotionCountSpan = '',
+        safePotionCountShort = '',
+        safePotionCount,
+        retform = '<br>',
+        placeform = '',
+        fullDisplay = 'table-row',
+        summaryDisplay = 'none',
+        shortName,
+        cssClass,
+        component,
+        count,
+        potRetrieve,
+        potRetVal,
+        potRetType,
+        invPlace,
+        empty = (rowClass == 'recipe-empty'),
+        partial = (rowClass == 'recipe-partial');
     recipe = recipe.replace(/,? *(in)?complete$/, '');
     var recipeMatch = recipe.match(/^.*<b>(Potion of .+)<\/b> *(.*)$/);
     if (!recipeMatch) { return; }
-    potionName = recipeMatch[1]; componentList = recipeMatch[2];
+    potionName = recipeMatch[1];
+    componentList = recipeMatch[2];
     recipeComponents = componentList.split(', ');
     if (!componentList) { recipeComponents = ''; }
     len = recipeComponents.length;
     for (i = 0; i < len; i++) {
-        safeRetrieve = '', safeRetrieveForm = '', safeRetrieveType = '';
+        safeRetrieve = '';
+        safeRetrieveForm = '';
+        safeRetrieveType = '';
         count = parseInt(recipeComponents[i].match(/\(x(\d+)\)/)[1]);
         if (count > 1) { preserved = '-count'; }
         component = recipeComponents[i].replace(/ \(x\d+\)$/, '');
-        cssClass = 'component-' + components[character.Class][component];
+        cssClass = 'component-' + alchemyComponents[component];
         componentCount += count;
         if (inventoryItems[component]) {
             inventoryCount += count;
@@ -1083,7 +1095,7 @@ function formatRecipe(recipe, rowClass) {
         }
     }
     if (recipeComponents && completionLevel == 'inventory' && preserved == 'saved' && getInvItem('Stygian Bone Leech') && !alchemySuppressLW) { buttonHtml = '<form name="alchemyknown" action="modules.php?name=Game&amp;op=alchemy" method="POST"><input type="hidden" name="potion" value="' + potionName + '"/><input type="submit" title="Leech Warning - Brew Batch" value="w!B!w"/></form>'; }
-    else if (recipeComponents &&  completionLevel == 'inventory') { buttonHtml = '<form name="alchemyknown" action="modules.php?name=Game&amp;op=alchemy" method="POST"><input type="hidden" name="potion" value="' + potionName + '"/><input type="submit" title="Brew Batch" value="-B-"/></form>'; }
+    else if (recipeComponents && completionLevel == 'inventory') { buttonHtml = '<form name="alchemyknown" action="modules.php?name=Game&amp;op=alchemy" method="POST"><input type="hidden" name="potion" value="' + potionName + '"/><input type="submit" title="Brew Batch" value="-B-"/></form>'; }
     //show safe-stock
     if (alchemyShowCount && safeStatus > 0) {
         if (safeItems[potionName]) { safePotionCount = safeItems[potionName].count; }
@@ -1113,7 +1125,7 @@ function formatRecipe(recipe, rowClass) {
         componentString = "[<span class='component-fixed'>" + fixedComponents[potionName] + "</span>]";
     }
     if (partial && !componentString.match(fixedComponents[potionName].replace(/ /g, '&nbsp;'))) {
-        cssClass = 'component-' + components[character.Class][fixedComponents[potionName]];
+        cssClass = 'component-' + alchemyComponents[fixedComponents[potionName]];
         componentString = "[<span class='" + cssClass + " component-fixed'>" + fixedComponents[potionName] + "</span>]<br/>" + componentString;
     }
     rowClass += ' completionlevel-' + completionLevel;
@@ -1135,7 +1147,7 @@ function formatRecipe(recipe, rowClass) {
 
 
 function getSafeItem(item) {
-    var ret_id = '',  ret_type = '';
+    var ret_id = '', ret_type = '';
     if (safeItems[item]) {
         if (safeItems[item].safe) { ret_id = safeItems[item].safe; ret_type = 'safe'; }
         else if (safeItems[item].footlocker) { ret_id = safeItems[item].footlocker; ret_type = 'footlocker'; }
@@ -1163,8 +1175,8 @@ function parseSafeItems() {
             componentMatch = safeOptions.snapshotItem(i).innerHTML.match(/(.+) \((\d+)\)$/);
             componentId = safeOptions.snapshotItem(i).value;
             component = componentMatch[1]; count = componentMatch[2];
-            if (components[character.Class][component]) {
-                safeOptions.snapshotItem(i).className = 'safeitem-' + components[character.Class][component];
+            if (alchemyComponents[component]) {
+                safeOptions.snapshotItem(i).className = 'safeitem-' + alchemyComponents[component];
             }
             if (!items[component]) { items[component] = {}; }
             if (!items[component].count) { items[component].count = parseInt(count); }
@@ -1174,7 +1186,7 @@ function parseSafeItems() {
     alchemyItems = document.evaluate("//form[@name='alchemyresearch' or @name='alchemytransmute']/select[@name='itemid']/option", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null );
     len = alchemyItems.snapshotLength;
     for (i = 0; i < len; i++) {
-        if (components[character.Class][alchemyItems.snapshotItem(i).innerHTML]) { alchemyItems.snapshotItem(i).className = 'safeitem-' + components[character.Class][alchemyItems.snapshotItem(i).innerHTML]; }
+        if (alchemyComponents[alchemyItems.snapshotItem(i).innerHTML]) { alchemyItems.snapshotItem(i).className = 'safeitem-' + alchemyComponents[alchemyItems.snapshotItem(i).innerHTML]; }
     }
     return [items, safestatus];
 }
@@ -1187,19 +1199,11 @@ function parseInventoryItems() {
     for (i = 0; i < len; i++) {
         component = safeOptions.snapshotItem(i).innerHTML;
         value = safeOptions.snapshotItem(i).value;
-        if (components[character.Class][component]) { safeOptions.snapshotItem(i).className = 'safeitem-' + components[character.Class][component]; }
+        if (alchemyComponents[component]) { safeOptions.snapshotItem(i).className = 'safeitem-' + alchemyComponents[component]; }
         if (!items[component]) { items[component] = {}; }
         items[component].count = 1; items[component].value = value;
     }
     return items;
-}
-
-
-function parseCharacterInfo() {
-    var character = {};
-    character.Class = 'Sorcerer'; // = levelclassname; //bugged so that all classes have same corpus
-    character.Id = charinfoid;
-    return character;
 }
 
 
@@ -1227,7 +1231,7 @@ function setToggleListener(link) {
     var linkMatch = link.id.match(/toggle-(.+)-(full|summary)/);
     var potion = linkMatch[1];
     var toggleType = linkMatch[2];
-    link.addEventListener('click', function() { setToggle(character.Id, potion, (toggleType == 'full') ? 'summary' : 'full'); }, false);
+    link.addEventListener('click', function() { setToggle(charinfo.id, potion, (toggleType == 'full') ? 'summary' : 'full'); }, false);
 }
 
 
@@ -1239,7 +1243,7 @@ function toggleAll(toggleState) {
         link = toggleLinks.snapshotItem(i);
         linkMatch = link.id.match(/toggle-(.+)-(full|summary)/);
         potion = linkMatch[1];
-        setToggle(character.Id, potion, toggleState);
+        setToggle(charinfo.id, potion, toggleState);
     }
 }
 
@@ -1258,95 +1262,94 @@ function setToggleAll(panetitle) {
 
 
 function getComponentDictionary() {
-    var components = {};
-    components.Sorcerer = {}; //only sorceror components used in breath3
-    components.Sorcerer['Bag of Industrial Plastic'] = 'rare';
-    components.Sorcerer['Batch of Leather'] = 'rare';
-    components.Sorcerer['Batch of Mushrooms'] = 'uncommon';
-    components.Sorcerer['Blood Ice'] = 'uncommon immutable';
-    components.Sorcerer['Bottle of Holy Water'] = 'common';
-    components.Sorcerer['Bottle of Paradise Water'] = 'common';
-    components.Sorcerer['Bunch of Daisies'] = 'uncommon';
-    components.Sorcerer['Bunch of Lilies'] = 'rare';
-    components.Sorcerer['Bunch of Paradise Lilies'] = 'uncommon';
-    components.Sorcerer['Chunk of Brass'] = 'uncommon';
-    components.Sorcerer['Chunk of Iron'] = 'rare';
-    components.Sorcerer['Chunk of Ivory'] = 'uncommon';
-    components.Sorcerer['Chunk of Onyx'] = 'rare';
-    components.Sorcerer['Chunk of Steel'] = 'common';
-    components.Sorcerer['Chunk of Stygian Iron'] = 'common';
-    components.Sorcerer['Femur'] = 'common';
-    components.Sorcerer['Gold Ingot'] = 'uncommon'; //not rare, in practice
-    components.Sorcerer['Handful of Grave Dirt'] = 'common';
-    components.Sorcerer['Healing Herb'] = 'uncommon';
-    components.Sorcerer['Humerus'] = 'common';
-    components.Sorcerer['Lead Brick'] = 'uncommon';
-    components.Sorcerer['Patch of Lichen'] = 'uncommon';
-    components.Sorcerer['Patch of Moss'] = 'uncommon';
-    components.Sorcerer['Piece of Stygian Coal'] = 'common';
-    components.Sorcerer['Piece of Wood'] = 'common';
-    components.Sorcerer['Rose'] = 'common';
-    components.Sorcerer['Silver Ingot'] = 'uncommon';
-    components.Sorcerer['Skull'] = 'common';
-    components.Sorcerer['Small Bottle of Gunpowder'] = 'rare';
-    components.Sorcerer['Soul Ice'] = 'uncommon immutable';
-    components.Sorcerer['Spool of Copper Wire'] = 'rare';
-    components.Sorcerer['Sprig of Nightshade'] = 'rare';
-    components.Sorcerer['Stygian Bone Leech'] = 'common';
-    return components;
+    return {
+        'Bag of Industrial Plastic': 'rare',
+        'Batch of Leather': 'rare',
+        'Batch of Mushrooms': 'uncommon',
+        'Blood Ice': 'uncommon immutable',
+        'Bottle of Holy Water': 'common',
+        'Bottle of Paradise Water': 'common',
+        'Bunch of Daisies': 'uncommon',
+        'Bunch of Lilies': 'rare',
+        'Bunch of Paradise Lilies': 'uncommon',
+        'Chunk of Brass': 'uncommon',
+        'Chunk of Iron': 'rare',
+        'Chunk of Ivory': 'uncommon',
+        'Chunk of Onyx': 'rare',
+        'Chunk of Steel': 'common',
+        'Chunk of Stygian Iron': 'common',
+        'Femur': 'common',
+        'Gold Ingot': 'uncommon',
+        'Handful of Grave Dirt': 'common',
+        'Healing Herb': 'uncommon',
+        'Humerus': 'common',
+        'Lead Brick': 'uncommon',
+        'Patch of Lichen': 'uncommon',
+        'Patch of Moss': 'uncommon',
+        'Piece of Stygian Coal': 'common',
+        'Piece of Wood': 'common',
+        'Rose': 'common',
+        'Silver Ingot': 'uncommon',
+        'Skull': 'common',
+        'Small Bottle of Gunpowder': 'rare',
+        'Soul Ice': 'uncommon immutable',
+        'Spool of Copper Wire': 'rare',
+        'Sprig of Nightshade': 'rare',
+        'Stygian Bone Leech': 'common',
+    }
 }
 
 
 function getShortNames() {
-    var shortNames = {};
-    shortNames['Acid Affinity'] = 'Acid';
-    shortNames['Cold Affinity'] = 'Cold';
-    shortNames['Combat Clarity'] = 'CC';
-    shortNames['Death Affinity'] = 'Death';
-    shortNames['Electricity Affinity'] = 'Electric';
-    shortNames['Fire Affinity'] = 'Fire';
-    shortNames['Extended Invisibility'] = 'XI';
-    shortNames['Greater Invulnerability'] = 'GI';
-    shortNames['Holy Affinity'] = 'Holy';
-    shortNames['Invulnerability'] = 'I';
-    shortNames['Lesser Invulnerability'] = 'LI';
-    shortNames['Magic Recovery'] = 'MR';
-    shortNames['Planar Protection'] = 'PP';
-    shortNames['Regeneration'] = 'Regen';
-    shortNames['Unholy Affinity'] = 'Unholy';
-    shortNames['Water-Breathing'] = 'Wtr Brth';
-    return shortNames;
+    return {
+        'Acid Affinity': 'Acid',
+        'Cold Affinity': 'Cold',
+        'Combat Clarity': 'CC',
+        'Death Affinity': 'Death',
+        'Electricity Affinity': 'Electric',
+        'Fire Affinity': 'Fire',
+        'Extended Invisibility': 'XI',
+        'Greater Invulnerability': 'GI',
+        'Holy Affinity': 'Holy',
+        'Invulnerability': 'I',
+        'Lesser Invulnerability': 'LI',
+        'Magic Recovery': 'MR',
+        'Planar Protection': 'PP',
+        'Regeneration': 'Regen',
+        'Unholy Affinity': 'Unholy',
+        'Water-Breathing': 'Wtr Brth',
+    }
 }
 
 
 function getFixedComponents() {
-    var fixedComponents = {};
-    fixedComponents['Extended Invisibility'] = 'Small Bottle of Gunpowder';
-    fixedComponents['Magic Recovery'] = 'Chunk of Onyx';
-    fixedComponents['Greater Invulnerability'] = 'Chunk of Iron';
-    fixedComponents['Combat Clarity'] = 'Gold Ingot';
-    fixedComponents['Death Affinity'] = 'Sprig of Nightshade';
-    fixedComponents['Strength'] = 'Bag of Industrial Plastic';
-    fixedComponents['Electricity Affinity'] = 'Spool of Copper Wire';
-    fixedComponents['Flying'] = 'Silver Ingot';
-    fixedComponents['Regeneration'] = 'Stygian Bone Leech';
-    fixedComponents['Lesser Invulnerability'] = 'Batch of Leather';
-    fixedComponents['Water-Breathing'] = 'Bunch of Lilies';
-    fixedComponents['Acid Affinity'] = 'Patch of Lichen';
-    fixedComponents['Holy Affinity'] = 'Bunch of Paradise Lilies';
-    fixedComponents['Invisibility'] = 'Batch of Mushrooms';
-    fixedComponents['Unholy Affinity'] = 'Blood Ice';
-    fixedComponents['Invulnerability'] = 'Lead Brick';
-    fixedComponents['Cold Affinity'] = 'Soul Ice';
-    fixedComponents['Healing'] = 'Skull';
-    fixedComponents['Planar Protection'] = 'Handful of Grave Dirt';
-    fixedComponents['Fire Affinity'] = 'Chunk of Brass';
-    return fixedComponents;
+    return {
+        'Extended Invisibility': 'Small Bottle of Gunpowder',
+        'Magic Recovery': 'Chunk of Onyx',
+        'Greater Invulnerability': 'Chunk of Iron',
+        'Combat Clarity': 'Gold Ingot',
+        'Death Affinity': 'Sprig of Nightshade',
+        'Strength': 'Bag of Industrial Plastic',
+        'Electricity Affinity': 'Spool of Copper Wire',
+        'Flying': 'Silver Ingot',
+        'Regeneration': 'Stygian Bone Leech',
+        'Lesser Invulnerability': 'Batch of Leather',
+        'Water-Breathing': 'Bunch of Lilies',
+        'Acid Affinity': 'Patch of Lichen',
+        'Holy Affinity': 'Bunch of Paradise Lilies',
+        'Invisibility': 'Batch of Mushrooms',
+        'Unholy Affinity': 'Blood Ice',
+        'Invulnerability': 'Lead Brick',
+        'Cold Affinity': 'Soul Ice',
+        'Healing': 'Skull',
+        'Planar Protection': 'Handful of Grave Dirt',
+        'Fire Affinity': 'Chunk of Brass',
+    }
 }
 
 
 //#############################################################################
-// tweak 11: Access Keys
+// Tweak: Access Keys
 function addAccessKey(extra, evalstr) {
     var form = document.evaluate(evalstr, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
     var keys = ['null','B','C','E','F','G','J','K','L','N','O','Q','R','T','U','V','W','X','Y','Z','!','"','£','@','#','$','%','^','&','*','(',')'];
@@ -1358,30 +1361,29 @@ function addAccessKey(extra, evalstr) {
 
 
 function accesskeys() {
-    if (getSetting('accesskeys-extra-heal') != 'null') { addAccessKey('heal', "//form/input[@name='heal_type']/../input[@type='submit']"); }
-    if (getSetting('accesskeys-extra-fort') != 'null') { addAccessKey('fort', "//form[@name='fortificationattack']/input[@type='submit']"); }
-    if (getSetting('accesskeys-extra-pickup') != 'null') { addAccessKey('pickup', "//form[@name='pickup']/input[@type='submit']"); }
-    if (getSetting('accesskeys-extra-door') != 'null') { addAccessKey('door', "//form[@name='doorenter']/input[@type='submit']"); }
-    if (getSetting('accesskeys-extra-recap') != 'null') { addAccessKey('recap', "//form[@name='flag_retrieval']/input[@type='submit']"); }
-}
-
-
-//#############################################################################
-// tweak 12: Pet Targetting
-function pettarget() {
-    var len, i, local, idnum;
-    var petlinks = document.evaluate("//a[starts-with(@href,'modules.php?name=Game&op=view_pet&id=')]", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-    len = petlinks.snapshotLength;
-    for (i = 0; i < len; i++) {
-        local = petlinks.snapshotItem(i);
-        idnum = local.href.match('.+id=([0-9]+)')[1];
-        local.href = "javascript:SelectItem('target_id'," + idnum + ")";
+    if (getSetting('accesskeys-extra-heal') != 'null') {
+        addAccessKey('heal', "//form/input[@name='heal_type']/../input[@type='submit']");
+    }
+    if (getSetting('accesskeys-extra-fort') != 'null') {
+        addAccessKey('fort', "//form[@name='fortificationattack']/input[@type='submit']");
+    }
+    if (getSetting('accesskeys-extra-pickup') != 'null') {
+        addAccessKey('pickup', "//form[@name='pickup']/input[@type='submit']");
+    }
+    if (getSetting('accesskeys-extra-door') != 'null') {
+        addAccessKey('door', "//form[@name='doorenter']/input[@type='submit']");
+    }
+    if (getSetting('accesskeys-extra-recap') != 'null') {
+        addAccessKey('recap', "//form[@name='flag_retrieval']/input[@type='submit']");
+    }
+    if (getSetting('accesskeys-extra-power') != 'null') {
+        addAccessKey('power', "//form[@name='repair_power' or @name='remove_power']/input[@type='submit']");
     }
 }
 
 
 //#############################################################################
-// tweak 13: Remove Gem Colours
+// Tweak: Remove Gem Colours
 function removecolours() {
     var factionsafe = document.evaluate("//form[@name='footlockergrab']", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
     if (factionsafe.snapshotLength === 0) { return; }
@@ -1410,25 +1412,7 @@ function removecolours() {
 
 
 //#############################################################################
-// tweak 14: Faction Census
-function factioncensus() {
-    var loc = location + '';
-    var ranks, census, ranksrow, rcell, rdiv;
-    if (!loc.match(/faction&do=roster/)) { return; }
-    ranks = document.evaluate("//table/tbody/tr[th='Character']/..", document, null,XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-    if (ranks.snapshotLength != 1) { logLibC('census failed to find ranks'); return; }
-    census = (ranks.snapshotItem(0).childElementCount - 1);
-    if (census === 0) { return; }
-    ranksrow = document.evaluate("//div/table/tbody/tr[td='Renown']", document, null,XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-    rcell = ranksrow.snapshotItem(0).children[1];
-    rdiv = document.createElement('div');
-    rdiv.appendChild(document.createTextNode(census + ' Persons'));
-    rcell.appendChild(rdiv);
-}
-
-
-//#############################################################################
-// tweak 15: Inventory Tweaks
+// Tweak: Inventory Tweaks
 function invFastReload(invTBody) {
     var invReload, len, i, item;
     invReload = document.evaluate("//tr[td/a/text()='Reload' or td/a[starts-with(.,'Charge')]]", invTBody, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -1569,14 +1553,14 @@ function inventory_context_use(e) {
 
 
 function invColourComponents(invTBody) {
-    var invHead, len, i, temp;
-    var cdict = getComponentDictionary();
+    var invHead, len, i, temp,
+        cdict = getComponentDictionary();
     invHead = document.evaluate("//tr[@bgcolor='#eeeeee' or @bgcolor='#ffffff']", invTBody, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
     len = invHead.snapshotLength;
     if (len === 0) { return; }
     for (i = 0; i < len; i++) {
         temp = invHead.snapshotItem(i).children[0];
-        if (cdict['Sorcerer'][temp.textContent]) { temp.className = 'component-'+cdict['Sorcerer'][temp.textContent]; }
+        if (cdict[temp.textContent]) { temp.className = 'component-'+cdict[temp.textContent]; }
     }
 }
 
@@ -1611,7 +1595,7 @@ function inventory_toggle(e) {
 
 
 //#############################################################################
-// tweak 16: Default Select Options
+// Tweak: Default Select Options
 function selectlastopt(evalstr) {
     var setselect, len;
     setselect = document.evaluate(evalstr, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -1645,14 +1629,14 @@ function logLibC(message, verbose=false) {
 
 
 function getSetting(settingname) {
-    if (charinfoid) { settingname = 'libc-' + charinfoid + '-' + settingname; }
+    if (charinfo.id) { settingname = 'libc-' + charinfo.id + '-' + settingname; }
     else { logLibC('Error getSetting for '+settingname); return null; }
     return String(GM_getValue(settingname, null));
 }
 
 
 function setSetting(settingname, val) {
-    if (charinfoid) { settingname = 'libc-' + charinfoid + '-' + settingname; }
+    if (charinfo.id) { settingname = 'libc-' + charinfo.id + '-' + settingname; }
     else { logLibC('Error setSetting for '+settingname+' to val: '+val); return null; }
     return GM_setValue(settingname, String(val));
 }
@@ -1735,7 +1719,6 @@ function libSettings() {
         ['pettweak', 'Pet Interface', 'Vastly improves upon the pet interface with colours, countdowns, hover information, and indicators for the lowest pets.'],
         ['alchemytweak', 'Alchemy Interface', 'Vastly improves upon the alchemy interface with colours, tabs, many easy-access buttons, and notes.'],
         ['accesskeys', 'Access Keys', 'Adds access keys to heal or to bash forts or to pickup items.'],
-        ['pettarget', 'Pet Target Bug-Fix', 'Fixes it so that clicking on a pet\'s name will target that pet. Does not affect the pet target resetting after an attack.'],
         ['removecolour', 'Remove Gem Colour', 'Removes the colour of a gem and sorts them, in the faction safe. Only applies to spellcraft characters viewing a faction safe.'],
         ['inventory', 'Inventory Tweaks', 'For fast inventory management.'],
         ['targetsetup', 'Target Set-Up Default', 'Changes the default to the last option for setting up targets (usually bottles) and avoiding putting up precious potions.'],
@@ -1744,8 +1727,47 @@ function libSettings() {
         ['global', 'GLOBAL SETTINGS', 'These settings are stored independent of your characters, due to technical limitations.']
     ];
 
-        // settings to display under modules
-            // b = checkbox, s = select(dropdown), f = textfield, g = global
+    var accessKeyFactory = (defaultKey) => {
+        var keyList = [
+            ['null', 'Disable'],
+            ['B','B'],
+            ['C','C'],
+            ['E','E'],
+            ['F','F'],
+            ['G','G'],
+            ['J','J'],
+            ['K','K'],
+            ['L','L'],
+            ['N','N'],
+            ['O','O'],
+            ['Q','Q'],
+            ['R','R'],
+            ['T','T'],
+            ['U','U'],
+            ['V','V'],
+            ['W','W'],
+            ['X','X'],
+            ['Y','Y'],
+            ['Z','Z'],
+            ['!','!'],
+            ['"','"'],
+            ['£','£'],
+            ['@','@'],
+            ['#','#'],
+            ['$','$'],
+            ['%','%'],
+            ['^','^'],
+            ['&','&'],
+            ['*','*'],
+            ['(','('],
+            [')',')'],
+        ];
+        keyList.defaultKey = '('+defaultKey+')';
+        return keyList;
+    }
+
+    // settings to display under modules
+    // b = checkbox, s = select(dropdown), f = textfield, g = global
     var settings = [
         ['hilights', 'b', 'Hilight Shadows', 'shadow', 'Highlights shadows moving in windows.'],
         ['hilights', 'b', 'Hilight Lights', 'lights', 'Highlights the power status of the tile.'],
@@ -1761,7 +1783,6 @@ function libSettings() {
         ['safety', 'b', 'Safe Craft Button', 'craft', 'Adds a safety to the Craft Item button.'],
         ['safety', 'b', 'Safe Repair Button', 'repair', 'Adds a safety to the Repair Item button.'],
         ['safety', 'b', 'Safe Learn Buttons', 'learn', 'Adds safeties to Learn Spell buttons.'],
-        ['safety', 'b', 'Safe Revoke Button', 'revoke', 'Adds a safety to the Revoke Stronghold button.'],
         ['safety', 'b', 'Safe Speech Buttons', 'speech', 'Adds a safety to Speech/Bullhorn buttons, so that you must enter something before sending.'],
         ['safety', 'b', 'Safe Load Wand', 'loadwand', 'Adds double-click safeties to (re)load spellwand buttons.'],
         ['weaponpane', 'b', 'Print DPA', 'dpa', 'Prints the raw DPA for each attack in drop-downs.'],
@@ -1794,11 +1815,12 @@ function libSettings() {
         ['alchemytweak', 'b', 'Always Hilight Safe', 'alwayshilight', 'Colours the inventory and safe drop-downs according to component rarity.'],
         ['alchemytweak', 'b', 'Suppress Component Hilighting', 'suppress', 'NOT RECOMMENDED BY DEFAULT: Removes the hilighting from components for when they are in the safe or your inventory.'],
         ['alchemytweak', 'b', 'Suppress Leech Warning', 'suppresslw', 'NOT RECOMMENDED BY DEFAULT: To disable the alternate button when leeches are in your inventory.'],
-        ['accesskeys', 's', 'Fort-bash Key', 'fort', 'Adds an accesskey for fort-bashing. Suggested default F.', [['null', 'Disable'],['B','B'],['C','C'],['E','E'],['F','(F)'],['G','G'],['J','J'],['K','K'],['L','L'],['N','N'],['O','O'],['Q','Q'],['R','R'],['T','T'],['U','U'],['V','V'],['W','W'],['X','X'],['Y','Y'],['Z','Z'],['!','!'],['"','"'],['£','£'],['@','@'],['#','#'],['$','$'],['%','%'],['^','^'],['&','&'],['*','*'],['(','('],[')',')']]],
-        ['accesskeys', 's', 'Heal Key', 'heal', 'Adds an accesskey for healing. Default order is FAKs, Bone Leeches, Herbs, then Surgery, depending on what is available. Suggested default X.', [['null', 'Disable'],['B','B'],['C','C'],['E','E'],['F','F'],['G','G'],['J','J'],['K','K'],['L','L'],['N','N'],['O','O'],['Q','Q'],['R','R'],['T','T'],['U','U'],['V','V'],['W','W'],['X','(X)'],['Y','Y'],['Z','Z'],['!','!'],['"','"'],['£','£'],['@','@'],['#','#'],['$','$'],['%','%'],['^','^'],['&','&'],['*','*'],['(','('],[')',')']]],
-        ['accesskeys', 's', 'Retrieve Item Key', 'pickup', 'Adds an accesskey for picking up targets and throwing weapons. Suggested default E.', [['null', 'Disable'],['B','B'],['C','C'],['E','(E)'],['F','F'],['G','G'],['J','J'],['K','K'],['L','L'],['N','N'],['O','O'],['Q','Q'],['R','R'],['T','T'],['U','U'],['V','V'],['W','W'],['X','X'],['Y','Y'],['Z','Z'],['!','!'],['"','"'],['£','£'],['@','@'],['#','#'],['$','$'],['%','%'],['^','^'],['&','&'],['*','*'],['(','('],[')',')']]],
-        ['accesskeys', 's', 'Enter/Exit Key', 'door', 'Adds an accesskey for entering and exiting a tile. Suggested default B.', [['null', 'Disable'],['B','(B)'],['C','C'],['E','E'],['F','F'],['G','G'],['J','J'],['K','K'],['L','L'],['N','N'],['O','O'],['Q','Q'],['R','R'],['T','T'],['U','U'],['V','V'],['W','W'],['X','X'],['Y','Y'],['Z','Z'],['!','!'],['"','"'],['£','£'],['@','@'],['#','#'],['$','$'],['%','%'],['^','^'],['&','&'],['*','*'],['(','('],[')',')']]],
-        ['accesskeys', 's', 'Recapture Key', 'recap', 'Adds an accesskey for recapturing a standard. Suggested default L.', [['null', 'Disable'],['B','B'],['C','C'],['E','E'],['F','F'],['G','G'],['J','J'],['K','K'],['L','(L)'],['N','N'],['O','O'],['Q','Q'],['R','R'],['T','T'],['U','U'],['V','V'],['W','W'],['X','X'],['Y','Y'],['Z','Z'],['!','!'],['"','"'],['£','£'],['@','@'],['#','#'],['$','$'],['%','%'],['^','^'],['&','&'],['*','*'],['(','('],[')',')']]],
+        ['accesskeys', 's', 'Fort-bash Key', 'fort', 'Adds an accesskey for fort-bashing. Suggested default F.', accessKeyFactory('F')],
+        ['accesskeys', 's', 'Heal Key', 'heal', 'Adds an accesskey for healing. Default order is FAKs, Bone Leeches, Herbs, then Surgery, depending on what is available. Suggested default X.', accessKeyFactory('X')],
+        ['accesskeys', 's', 'Retrieve Item Key', 'pickup', 'Adds an accesskey for picking up targets and throwing weapons. Suggested default E.', accessKeyFactory('E')],
+        ['accesskeys', 's', 'Enter/Exit Key', 'door', 'Adds an accesskey for entering and exiting a tile. Suggested default B.', accessKeyFactory('B')],
+        ['accesskeys', 's', 'Recapture Key', 'recap', 'Adds an accesskey for recapturing a standard. Suggested default L.', accessKeyFactory('L')],
+        ['accesskeys', 's', 'Power Remove/Repair Key', 'power', 'Adds an accesskey for restoring/removing power to a tile. Suggested default J.', accessKeyFactory('J')],
         ['inventory', 'b', 'Fast Charge/Reload', 'reload', 'Places gems able to be recharged and weapons able to be reloaded at the top of the list.'],
         ['inventory', 'b', 'Hide Weightless Items', 'hide', 'Hides weightless items in inventory, with a toggle to display them.'],
         ['inventory', 'b', 'Short Item Names', 'short', 'Shortens item names in the inventory to conserve space.'],
@@ -1807,8 +1829,6 @@ function libSettings() {
         ['inventory', 'b', 'Colour Components', 'colourcomponents', 'Colours alchemy components with rarity, and emboldens them.'],
         // ['craftcheck', 'b', 'Hilight Partial Options', 'hilight-partial', 'Much like alchemy pane, colours items you have some but not all ingredients to craft.'],
         ['global', 'g', 'Colour Message History', 'messagehistory', 'Adds CSS styling to the message history to improve ease of reading. Includes combat actions, searches, speech, and more.'],
-        ['global', 'g', 'Safe Faction/Char Buttons', 'safebuttons', 'Adds safety buttons to character pages and faction pages and skill selection pages.'],
-        ['global', 'g', 'Faction Census', 'factioncensus', 'Adds a census feature to the faction roster page.']
     ];
     scratchpad = document.evaluate("//td/form/textarea[@name='Scratchpad']/../../../..", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
     if (scratchpad.snapshotLength != 1) { return; }
@@ -1917,16 +1937,14 @@ function runLibC() {
     var libGlobalCalls, libCalls, i, len;
     if (getSetting('run-sortpeople') == 'true') { sortpeople(); } //this breaks if not running first. innerHTML editing deletes dom elements
     libGlobalCalls = [
-        ['factioncensus', factioncensus],
-        ['safebuttons', safebuttons],
-        ['messagehistory', messagehistory]
+        ['messagehistory', messagehistory],
     ];
     len = libGlobalCalls.length;
     for (i = 0; i < len; i++) {
         if (getGlobalSetting(libGlobalCalls[i][0]) == 'true') { libGlobalCalls[i][1](); }
     }
     libSettings();
-    if (charinfoid) { //these run using settings checks
+    if (charinfo.id) { //these run using settings checks
         libCalls = [
             ['removecolour', removecolours],
             ['safety', safebuttons],
@@ -1939,11 +1957,10 @@ function runLibC() {
             ['pettweak', processPetTable],
             ['alchemytweak', alchemytweak],
             ['accesskeys', accesskeys],
-            ['pettarget', pettarget],
             ['inventory', inventory],
             ['targetsetup', targetsetupdefaults],
             ['recapdefaults', recapdefaults],
-            ['speakdefaults', speakdefaults]
+            ['speakdefaults', speakdefaults],
         ];
         len = libCalls.length;
         for (i = 0; i < len; i++) {
