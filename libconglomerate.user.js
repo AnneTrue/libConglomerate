@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           LibC
-// @version        3.1.1
+// @version        3.1.2
 // @description    Lib's Conglomerated Scripts
 // @namespace      https://github.com/AnneTrue/
 // @author         Anne True
@@ -16,7 +16,7 @@
 // ==/UserScript==
 
 (function () {
-var versionStr = '3.1.1'; // version updates go here too!
+var versionStr = '3.1.2'; // version updates go here too!
 
 // logs to console; can disable if you want
 var libCLogging = true;
@@ -1348,9 +1348,15 @@ function toggleAll(toggleState) {
 function setToggleAll(panetitle) {
     var open, close;
     open = document.createElement('input');
-    open.type = 'submit'; open.value = '(Open All)'; open.className = 'liblink';
+    open.type = 'submit';
+    open.value = '(Open All)';
+    open.className = 'liblink';
+    open.color = 'white';
     close = document.createElement('input');
-    close.type = 'submit'; close.value = '(Close All)'; close.className = 'liblink';
+    close.type = 'submit';
+    close.value = '(Close All)';
+    close.className = 'liblink';
+    close.color = 'white';
     open.addEventListener('click', function() { toggleAll('full'); }, false);
     close.addEventListener('click', function() { toggleAll('summary'); }, false);
     panetitle.appendChild(open);
@@ -1587,8 +1593,10 @@ function invContextBtns(invTBody) {
         temp = invRows.snapshotItem(i);
         if (!temp.children[4].innerHTML.match('.+item=([0-9]+)')) { continue; }
         iid = temp.children[4].innerHTML.match('.+item=([0-9]+)')[1];
-        contextbtn = document.createElement('a'); contextbtn.className = 'liblink';
-        contextbtn.textContent = '(-) '; contextbtn.id = 'context-'+iid;
+        contextbtn = document.createElement('a');
+        contextbtn.className = 'liblink';
+        contextbtn.textContent = '(-) ';
+        contextbtn.id = 'context-'+iid;
         contextbtn.title = 'Context Use Button';
         if (setting == 'safe' || setting == 'give' || setting == 'foot') {
             contextbtn.style.display = 'inline';
