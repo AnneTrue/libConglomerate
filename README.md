@@ -1,7 +1,7 @@
 # libConglomerate
 Assorted userscripts for NexusClash, along with a per-character, per-browser setting framework.
 
-## Version 3.1.0
+## Version 3.1
 ### Complete Feature List:
 * Toggled Settings 
   * Found in the 'Pad' panel in the multi-function pane, below the character's note pad. 
@@ -32,8 +32,8 @@ Assorted userscripts for NexusClash, along with a per-character, per-browser set
   * Neutral characters default to 'Enemies.' 
   * Enemy Sort and Ally Sort can be by HP Percentage, Alphabetical (Nexus Clash default), HP Total, HP Total Missing, Levels, Magic Points Missing, Magic Points Percentage. HP Total (and Missing) requires the First Aid skill to work properly. HP Percentage does not require first aid, but benefits from it (gains accuracy). Magic Point sorts require the Sense Magic skill. 
   * Reverse Enemy/Ally Sort simply flips the order they appear in. If you use HP (Or MP) Total Missing, you probably want to enable this to list the most hurt first.
-  * Display HP requires the First Aid skill. It prints the current HP and the amount of HP missing from the character next to their name. Full HP uses black text, missing HP uses pink. Format is +HP-missing 
-  * Display Magic Points requires the Sense Magic skill. It prints the amount of MP missing from a character, next to their name. The colour is dark blue, and is formatted as -missing after the character's name.
+  * Display HP requires the First Aid skill. It prints the current HP and the amount of HP missing from the character next to their name. Full HP uses black text, missing HP uses pink. Format is '+HP-missing' 
+  * Display Magic Points requires the Sense Magic skill. It prints the amount of MP missing from a character, next to their name. The colour is dark blue, and is formatted as 'm##' after the character's name.
   * Sort Neutrals as Allies places unfactioned characters (and neutral politics factioned characters) into the allies group. 
   * Hilight Master's Pets will turn all the pets a character owns blue when you hover over their name. It will also add a hovertext with the total tally of pets that a character has. 
 
