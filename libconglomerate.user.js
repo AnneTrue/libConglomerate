@@ -101,7 +101,7 @@ function getCharacterInfo(charinfodiv) {
       if (apMatch) {
           charinfo.ap = parseInt(apMatch[1]);
       }
-    } catch (err) { libCLog('Charinfo parse AP error: '+ err.message) }
+    } catch (err) { logLibC('Charinfo parse AP error: '+ err.message) }
 
     try {
       hpNode = document.evaluate(
@@ -112,7 +112,7 @@ function getCharacterInfo(charinfodiv) {
       if (hpMatch) {
           charinfo.hp = parseInt(hpMatch[1]);
       }
-    } catch (err) { libCLog('Charinfo parse HP error: '+ err.message) }
+    } catch (err) { logLibC('Charinfo parse HP error: '+ err.message) }
 
     try {
       mpNode = document.evaluate(
@@ -122,7 +122,7 @@ function getCharacterInfo(charinfodiv) {
       if (mpMatch) {
           charinfo.mp = parseInt(mpMatch[1]);
       }
-    } catch (err) { libCLog('Charinfo parse MP error: '+ err.message) }
+    } catch (err) { logLibC('Charinfo parse MP error: '+ err.message) }
 
     return charinfo;
 }
@@ -222,138 +222,217 @@ function desctextmatches(descdiv, descPieces) {
 
 
 //#############################################################################
-// Tweak: sort people by alliances and health, print health
+// Tweak: sort people by alliances and stats, allows showing health/MP
 function sortpeople() {
     if (!charinfo) { return; }
-    var peoplematch = /There (is|are) (\d+) other (person|people) here, (.*?>)\./.exec(document.documentElement.getElementsByTagName('body')[0].innerHTML);
-    var ppl, person, i, len, count, h;
-    var sorts = getSortTypes();
-    var sort1 = sorts[0], sort2 = sorts[1];
-    var sortRev1 = (getSetting('sortpeople-extra-reverse1') == 'true');
-    var sortRev2 = (getSetting('sortpeople-extra-reverse2') == 'true');
-    var showhp = (getSetting('sortpeople-extra-showhp') == 'true');
-    var allyneutral = (getSetting('sortpeople-extra-neutrals') == 'true');
-    var showpetmaster = (getSetting('sortpeople-extra-petmaster') == 'true');
-    var sortfield = {'total':'hp', 'percent':'hp_percent', 'downtotal':'hp_down', 'level':'level'};
-    var people = [[],[]];
-    if (!peoplematch) { return; }
-    logLibC('sortpeople runtime: '+peoplematch[2], true);
-    if (peoplematch[2] === 0) { return; }
-    ppl = peoplematch[4].substring(1, peoplematch[4].length - 1).split('>, <');
+    var peopleMatch, peopleLists, ppl, person, i, len, count, h,
+        sorts, sortVictims, sortFriends, sortRevVictims, sortRevFriends,
+        showhp, showmp, allyneutral, showpetmaster,
+        sortfield;
+    var tileDescNode = document.getElementsByClassName('tile_description');
+    if (tileDescNode.length !== 1) { return }
+    tileDescNode = tileDescNode[0];
+    peopleMatch = /There (?:is|are) (\d+) other (?:person|people) here, (.*?>)\./.exec(tileDescNode.innerHTML);
+    // Groups: (1: count persons) (2: innerHTML text of char list)
+    if (!peopleMatch) { return; }
+    sorts = getSortTypes();
+    sortVictims = sorts[0];
+    sortFriends = sorts[1];
+    sortRevVictims = (getSetting('sortpeople-extra-reverse1') == 'true');
+    sortRevFriends = (getSetting('sortpeople-extra-reverse2') == 'true');
+    showhp = (getSetting('sortpeople-extra-showhp') == 'true');
+    showmp = (getSetting('sortpeople-extra-showmp') == 'true');
+    allyneutral = (getSetting('sortpeople-extra-neutrals') == 'true');
+    showpetmaster = (getSetting('sortpeople-extra-petmaster') == 'true');
+    sortfield = {
+        'total':'hp',
+        'percent':'hp_percent',
+        'downtotal':'hp_down',
+        'level':'level',
+        'mp_down':'mp_down',
+        'mp_percent':'mp_percent'
+    };
+    peopleLists = {
+        'victims':[],
+        'friends':[],
+    };
+    logLibC('sortpeople runtime: '+peopleMatch[2], true);
+    if (peopleMatch[1] == 0) { return; }
+    ppl = peopleMatch[2].substring(1, peopleMatch[2].length - 1).split('>, <');
     len = ppl.length;
-    if (len != parseInt(peoplematch[2])) { logLibC('Count fails to match peoplematch count'); return; }
+    if (len != parseInt(peopleMatch[1])) { logLibC('Count fails to match peopleMatch count'); return; }
     for (i = 0; i < len; i++) {
         person = createSortPerson(ppl[i], allyneutral);
-        if (person.sorttype === 0) { people[0].push(person); }
-        else { people[1].push(person); }
+        peopleLists[person.politics].push(person)
     }
 
     // sort people here
-    if ( sortfield.hasOwnProperty(sort1) ) {
-        people[0].sort( sort_by( sortfield[sort1], sortRev1) );
+    if ( sortfield.hasOwnProperty(sortVictims) ) {
+        peopleLists.victims.sort( sort_by( sortfield[sortVictims], sortRevVictims) );
     }
     // implicit else: don't sort, already in alphabetical order
-    if ( sortfield.hasOwnProperty(sort2) ) {
-        people[1].sort( sort_by( sortfield[sort2], sortRev2) );
+    if ( sortfield.hasOwnProperty(sortFriends) ) {
+        peopleLists.friends.sort( sort_by( sortfield[sortFriends], sortRevFriends) );
     } // again implied else --> don't sort
 
     // now format for display
-    count = (people[0].length + people[1].length);
-    if (count != parseInt(peoplematch[2])) { logLibC('Count fails to match peoplematch count'); return; } // just in case
+    count = (peopleLists.victims.length + peopleLists.friends.length);
+    if (count != parseInt(peopleMatch[1])) { logLibC('Count fails to match peopleMatch count'); return; } // just in case
     if (count == 1) {
         h = '<p id="chars_desc">There is 1 other person here.</p>\n';
     } else {
         h = '<p id="chars_desc">There are ' + count + ' other people here.</p>\n';
     }
 
-    h += createSortedPeopleHTML(people[0], 'victims', showhp);
-    h += createSortedPeopleHTML(people[1], 'friends', showhp);
+    h += createSortedPeopleHTML(peopleLists.victims, 'victims', showhp, showmp);
+    h += createSortedPeopleHTML(peopleLists.friends, 'friends', showhp, showmp);
 
     h = '<div id="other_chars">' + h + '</div>';
-    document.documentElement.innerHTML = document.documentElement.innerHTML.replace(peoplematch[0], h);
+    document.documentElement.innerHTML = document.documentElement.innerHTML.replace(peopleMatch[0], h);
 
     // Optional showpetmaster trigger
     if (showpetmaster) { petmaster(); }
 }
 
 
-function createSortedPeopleHTML(people, id, showhp) {
+function createSortedPeopleHTML(people, id, showhp, showmp) {
     var retHTML = '<p id="'+id+'">';
     var len = people.length, i;
     if (len === 0) { return ''; } // catch for no people
     for (i = 0; i < len; i++) {
-        retHTML += createSortedPersonHTML(people[i],showhp);
+        retHTML += createSortedPersonHTML(people[i], showhp, showmp);
+        retHTML += ', ';
     }
-    return retHTML.substring(0, retHTML.length - 2) + '.</p>'; // remove the trailing joiner and replace with close of par
+    // remove the trailing joiner and replace with close of par
+    return retHTML.substring(0, retHTML.length - 2) + '.</p>';
 }
 
 
-function createSortedPersonHTML(person, showhp) {
-    var hptext = '';
+function createSortedPersonHTML(person, showhp, showmp) {
+    var hptext = '', mptext = '';
     if (showhp && person.hp_visible) {
         hptext = (person.hp_down === 0) ? '<span class=hptext2>' : '<span class=hptext>';
         hptext += '+' + person.hp;
         if (person.hp_down > 0) { hptext += '-' + person.hp_down; }
+        hptext += '</span>'
     }
-    return '<span class="char" id="char_' + person.id + '"><' + person.html + '>' + hptext + '</span></span>, ';
+    if (showmp && person.mp_visible && person.mp_down > 0) {
+        mptext = '<span class=mptext>-' + person.mp_down + '</span>'
+    }
+    return '<span class="char" id="char_' + person.id + '"><' + person.html + '>' + hptext + mptext + '</span>';
 }
 
 
 function getSortTypes() {
-    var sort1 = getSortSingle( getSetting('sortpeople-extra-sort1') ),
-        sort2 = getSortSingle( getSetting('sortpeople-extra-sort2') );
-    setSetting('sortpeople-extra-sort1', sort1);
-    setSetting('sortpeople-extra-sort2', sort2);
-    return [sort1,sort2];
+    var sortVictims = getSortSingle( getSetting('sortpeople-extra-sort1') ),
+        sortFriends = getSortSingle( getSetting('sortpeople-extra-sort2') );
+    setSetting('sortpeople-extra-sort1', sortVictims);
+    setSetting('sortpeople-extra-sort2', sortFriends);
+    return [sortVictims,sortFriends];
 }
 
 function getSortSingle(sortStr) {
-    var sorts = ['normal', 'percent', 'total', 'downtotal', 'level']; // valid types of sorts; normal is alphabetical
-    if (sorts.indexOf(sortStr) == -1) { return 'normal'; }
+    var sorts = [
+        'normal',
+        'percent',
+        'total',
+        'downtotal',
+        'level',
+        'mp_down',
+        'mp_percent',
+    ]; // valid types of sorts; normal is alphabetical
+    if (sorts.indexOf(sortStr) == -1) {
+        logLibC('Unrecognised character sort type: ' + sortStr);
+        return 'normal';
+    }
     return sortStr
 }
 
 
 function createSortPerson(ppl, allyneutral) {
-    // creates an object of the character from the html
-    var retPerson = { 'hp':0,'hp_down':0 }; // defaults
-    var p = /a class="(faction|ally|friendly|neutral|enemy|hostile)" href="javascript:SelectItem\('target_id','(\d+)'\)">(.+)<\/a> \(<a href="modules.php\?name=Game&amp;op=character&amp;id=\d+">(\d*)<\/a>\)(<img title="Hidden" (?:height="12" width="12" src="images\/g\/status\/Hiding.^ png"|src="images\/g\/status\/Hiding.png" height="12" width="12")>)?<img( title="(\d+)\/(\d+) hit points")?.+?src="images\/g\/HealthBar_([1-4]).gif"/.exec(ppl);
-    // ^ this is the magic to match a person ^
+    // creates an object of the character's stats from an html string
+    var retPerson = {
+        'politics': null,
+        'id': null,
+        'level': null,
+        'hp': null,
+        'hp_down': null,
+        'hp_percent': null,
+        'hp_visible': false,
+        'mp': null,
+        'mp_down': null,
+        'mp_percent': null,
+        'mp_visible': false,
+        'html': ppl,
+    };
+    var temp;
+    logLibC('createSortPerson: ppl=`'+ppl+'`', true);
 
-    if (p[1] == 'enemy' || p[1] == 'hostile') {
-        retPerson.sorttype = 0;
-    }
-    else if (p[1] == 'neutral' && allyneutral === false) {
-        retPerson.sorttype = 0;
-    }
-    else {
-        retPerson.sorttype = 1;
-    }
-    retPerson.politics = p[1]; // specific info for later scripting expansion
-    retPerson.html = ppl;
-    retPerson.id = p[2];
-    retPerson.level = p[4];
-
-    if (p[6]) {
-        // if char has first aid and can see hp vals
-        retPerson.hp_visible = true;
-        retPerson.hp = parseInt(p[7]);
-        retPerson.hp_down = (parseInt(p[8])-parseInt(p[7]));
-        retPerson.hp_percent = (parseInt(p[7])/parseInt(p[8])) * 100;
-    } else {
-        // char doesn't have first aid; only sees 10,11-50,51-99,100% hp totals
-        retPerson.hp_visible = false;
-        switch (parseInt(p[9])) {
-            case 1:
-                retPerson.hp_percent = 100; break;
-            case 2:
-                retPerson.hp_percent = 99; break;
-            case 3:
-                retPerson.hp_percent = 50; break;
-            case 4:
-                retPerson.hp_percent = 10; break;
+    // politics
+    temp = /a class="(faction|ally|friendly|neutral|enemy|hostile)"/.exec(ppl);
+    if (temp) {
+        if (temp[1] == 'enemy' || temp[1] == 'hostile') {
+            retPerson.politics = 'victims';
         }
-    }
+        else if (temp[1] == 'neutral' && allyneutral === false) {
+            retPerson.politics = 'victims';
+        }
+        else {
+            retPerson.politics = 'friends';
+        }
+    } else { logLibC('Error: createSortPerson failed to match politics'); }
+    
+
+    // character ID
+    temp = /href="javascript:SelectItem\('target_id','(\d+)'\)">/.exec(ppl)
+    if (temp) {
+        retPerson.id = temp[1]
+    } else { logLibC('Error: createSortPerson failed to match char ID'); }
+    
+    // character link (level, and alternate ID)
+    temp = /\(<a href="modules.php\?name=Game&amp;op=character&amp;id=(\d+)">(\d*)<\/a>\)/.exec(ppl)
+    if (temp) {
+        retPerson.level = temp[2];
+        if (!retPerson.id && temp[1] != retPerson.id) {
+            logLibC('Warning: createSortPerson found two different char IDs');
+            retPerson.id = temp[1];
+        }
+    } else { logLibC('Error: createSortPerson failed to match character link'); }
+
+    // health points
+    temp = /<img(?: title="(\d+)\/(\d+) hit points").+?src="images\/g\/HealthBar_[1-4].gif"/.exec(ppl)
+    if (temp) {
+        if(temp[1]) {
+            // char has first aid and can see hp vals
+            retPerson.hp_visible = true;
+            retPerson.hp = parseInt(temp[1]);
+            retPerson.hp_down = (parseInt(temp[2])-retPerson.hp);
+            retPerson.hp_percent = (retPerson.hp/parseInt(temp[2])) * 100;
+        } else {
+            // char doesn't have first aid; only sees 10,11-50,51-99,100% hp totals
+            retPerson.hp_visible = false;
+            switch (parseInt(temp[3])) {
+                case 1:
+                    retPerson.hp_percent = 100; break;
+                case 2:
+                    retPerson.hp_percent = 99; break;
+                case 3:
+                    retPerson.hp_percent = 50; break;
+                case 4:
+                    retPerson.hp_percent = 10; break;
+            }
+        }
+    } else { logLibC('Error: createSortPerson failed to match character health'); }
+
+    // magic points
+    temp = /title="(\d+)\/(\d+) magic points".+?src="images\/g\/MagicBar_([1-4]).gif"/.exec(ppl)
+    if (temp) {
+        retPerson.mp_visible = true;
+        retPerson.mp = parseInt(temp[1]);
+        retPerson.mp_down = parseInt(temp[2])-retPerson.mp;
+        retPerson.mp_percent = (retPerson.mp/parseInt(temp[2])) * 100;
+    } else { logLibC('Warning: createSortPerson failed to match character MP'); }
+
     return retPerson;
 }
 
@@ -1791,12 +1870,13 @@ function libSettings() {
         ['hilights', 'b', 'Hilight Shadows', 'shadow', 'Highlights shadows moving in windows.'],
         ['hilights', 'b', 'Hilight Lights', 'lights', 'Highlights the power status of the tile.'],
         ['hilights', 'b', 'Display Pick-Up Item Count', 'targets', 'Adds a count of items that can be picked up to the end of the tile description. Dodgerblue if there are any, and no text if there are none.'],
-        ['sortpeople', 's', 'Enemy Sort', 'sort1', 'What style of sorting is utilised: alphabetical(default), percentage HP, total HP.', [['normal','Alphabetical'],['percent', 'HP Percentage'], ['total', 'HP Total'], ['downtotal', 'HP Total Missing'], ['level', 'Level']]],
+        ['sortpeople', 's', 'Enemy Sort', 'sort1', 'What style of sorting is utilised: alphabetical(default), percentage HP, total HP.', [['normal','Alphabetical'],['percent', 'HP Percentage'], ['total', 'HP Total'], ['downtotal', 'HP Total Missing'], ['level', 'Level'], ['mp_down', 'Magic Points Missing'], ['mp_percent', 'Magic Point Percentage']]],
         ['sortpeople', 'b', 'Reverse Enemy Sort', 'reverse1', 'Reverses the order of characters.'],
-        ['sortpeople', 's', 'Ally Sort', 'sort2', 'What style of sorting is utilised: alphabetical(default), percentage HP, total HP.', [['normal','Alphabetical'],['percent', 'HP Percentage'], ['total', 'HP Total'], ['downtotal', 'HP Total Missing'], ['level', 'Level']]],
+        ['sortpeople', 's', 'Ally Sort', 'sort2', 'What style of sorting is utilised: alphabetical(default), percentage HP, total HP.', [['normal','Alphabetical'],['percent', 'HP Percentage'], ['total', 'HP Total'], ['downtotal', 'HP Total Missing'], ['level', 'Level'], ['mp_down', 'Magic Points Missing'], ['mp_percent', 'Magic Point Percentage']]],
         ['sortpeople', 'b', 'Reverse Ally Sort', 'reverse2', 'Reverses the order of characters.'],
         ['sortpeople', 'b', 'Sort Neutrals as Allies', 'neutrals', 'Treat unfactioned and neutral factioned characters as allies in the sorted list.'],
         ['sortpeople', 'b', 'Display HP', 'showhp', 'Prints the HP values after the character\'s name. Requires first-aid.'],
+        ['sortpeople', 'b', 'Display Magic Points', 'showmp', 'Prints how much MP a character is missing. Requires Sense Magic.'],
         ['sortpeople', 'b', 'Hilight Master\'s Pets', 'petmaster', 'Will hilight all the pets belonging to a master when hovering over their name. Adds a count of pets when you hover over their name.'],
         ['safety', 'b', 'Safe Drop Buttons', 'drop', 'Adds safeties to Drop Item buttons.'],
         ['safety', 'b', 'Safe Craft Button', 'craft', 'Adds a safety to the Craft Item button.'],
