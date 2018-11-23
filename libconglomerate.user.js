@@ -846,7 +846,7 @@ function warningheaders() {
     } else if (charinfo.ap < lowAP) {
         headercolor = 'gold';
         headertitle = 'LOW AP';
-    }
+    } else { return }
 
     // headings between game sections (e.g. description pane, attack pane, etc.)
     len = panetitles.length;
