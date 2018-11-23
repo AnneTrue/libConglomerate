@@ -1353,12 +1353,12 @@ function setToggleAll(panetitle) {
     open.type = 'submit';
     open.value = '(Open All)';
     open.className = 'liblink';
-    open.color = 'white';
+    open.style = 'color: white;';
     close = document.createElement('input');
     close.type = 'submit';
     close.value = '(Close All)';
     close.className = 'liblink';
-    close.color = 'white';
+    close.style = 'color: white;';
     open.addEventListener('click', function() { toggleAll('full'); }, false);
     close.addEventListener('click', function() { toggleAll('summary'); }, false);
     panetitle.appendChild(open);
