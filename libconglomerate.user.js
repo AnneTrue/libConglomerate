@@ -3,6 +3,8 @@
 // @version        3.1.0
 // @description    Lib's Conglomerated Scripts
 // @namespace      https://github.com/AnneTrue/
+// @author         Anne True
+// @source         https://github.com/AnneTrue/libConglomerate
 // @match          *://nexusclash.com/modules.php?name=Game*
 // @match          *://www.nexusclash.com/modules.php?name=Game*
 // @exclude        *://nexusclash.com/modules.php?name=Game&op=disconnect
@@ -47,7 +49,7 @@ function addGlobalStyle(injectCSS) {
 }
 
 // custom CSS for script
-// addGlobalStyle(GM_getResourceText('libCCSS'));
+addGlobalStyle(GM_getResourceText('libCCSS'));
 
 
 //#############################################################################
@@ -89,29 +91,39 @@ function getCharacterInfo(charinfodiv) {
     charinfo.level = levelclassdata[1];
     charinfo.class = levelclassdata[2];
     charinfo.id = charinfodiv.getElementsByTagName('a')[0].href.match(/character&id=(\d+)$/)[1];
-    apNode = document.evaluate(
-        "//td/a[contains(@title, 'Action Points')]",
-        charinfodiv, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null
-    ).snapshotItem(0);
-    apMatch = apNode.textContent.match(/(\d+) AP/);
-    if (apMatch) {
-        charinfo.ap = parseInt(apMatch[1]);
-    }
-    hpNode = document.evaluate(
-        "//td/a[contains(@title, 'Hit Points')]",
-        charinfodiv, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null
-    ).snapshotItem(0);
-    hpMatch = apNode.textContent.match(/(\d+) HP/);
-    if (hpMatch) {
-        charinfo.hp = parseInt(hpMatch[1]);
-    }
-    mpNode = document.evaluate(
-        "//td/a[contains(@title, 'Magic Points')]", charinfodiv, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null
-    ).snapshotItem(0);
-    mpMatch = apNode.textContent.match(/(\d+) MP/);
-    if (mpMatch) {
-        charinfo.mp = parseInt(mpMatch[1]);
-    }
+
+    try {
+      apNode = document.evaluate(
+          "//td/a[contains(@title, 'Action Points')]",
+          charinfodiv, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null
+      ).snapshotItem(0);
+      apMatch = apNode.textContent.match(/(\d+) AP/);
+      if (apMatch) {
+          charinfo.ap = parseInt(apMatch[1]);
+      }
+    } catch (err) { libCLog('Charinfo parse AP error: '+ err.message) }
+
+    try {
+      hpNode = document.evaluate(
+          "//td/a[contains(@title, 'Hit Points')]",
+          charinfodiv, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null
+      ).snapshotItem(0);
+      hpMatch = hpNode.textContent.match(/(\d+) HP/);
+      if (hpMatch) {
+          charinfo.hp = parseInt(hpMatch[1]);
+      }
+    } catch (err) { libCLog('Charinfo parse HP error: '+ err.message) }
+
+    try {
+      mpNode = document.evaluate(
+          "//td/a[contains(@title, 'Magic Points')]", charinfodiv, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null
+      ).snapshotItem(0);
+      mpMatch = mpNode.textContent.match(/(\d+) MP/);
+      if (mpMatch) {
+          charinfo.mp = parseInt(mpMatch[1]);
+      }
+    } catch (err) { libCLog('Charinfo parse MP error: '+ err.message) }
+
     return charinfo;
 }
 
@@ -212,6 +224,7 @@ function desctextmatches(descdiv, descPieces) {
 //#############################################################################
 // Tweak: sort people by alliances and health, print health
 function sortpeople() {
+    if (!charinfo) { return; }
     var peoplematch = /There (is|are) (\d+) other (person|people) here, (.*?>)\./.exec(document.documentElement.getElementsByTagName('body')[0].innerHTML);
     var ppl, person, i, len, count, h;
     var sorts = getSortTypes();
@@ -1629,14 +1642,14 @@ function logLibC(message, verbose=false) {
 
 
 function getSetting(settingname) {
-    if (charinfo.id) { settingname = 'libc-' + charinfo.id + '-' + settingname; }
+    if (charinfo && charinfo.id) { settingname = 'libc-' + charinfo.id + '-' + settingname; }
     else { logLibC('Error getSetting for '+settingname); return null; }
     return String(GM_getValue(settingname, null));
 }
 
 
 function setSetting(settingname, val) {
-    if (charinfo.id) { settingname = 'libc-' + charinfo.id + '-' + settingname; }
+    if (charinfo && charinfo.id) { settingname = 'libc-' + charinfo.id + '-' + settingname; }
     else { logLibC('Error setSetting for '+settingname+' to val: '+val); return null; }
     return GM_setValue(settingname, String(val));
 }
@@ -1762,7 +1775,13 @@ function libSettings() {
             ['(','('],
             [')',')'],
         ];
-        keyList.defaultKey = '('+defaultKey+')';
+        var idx, len=keyList.length;
+        for (idx=0; idx<len; idx++) {
+            if (keyList[idx][0] === defaultKey) {
+                keyList[idx][1] = '('+defaultKey+')';
+                break;
+            }
+        }
         return keyList;
     }
 
@@ -1944,32 +1963,32 @@ function runLibC() {
         if (getGlobalSetting(libGlobalCalls[i][0]) == 'true') { libGlobalCalls[i][1](); }
     }
     libSettings();
-    if (charinfo.id) { //these run using settings checks
-        libCalls = [
-            ['removecolour', removecolours],
-            ['safety', safebuttons],
-            ['hilights', showhilights],
-            ['thinbar', tweakbars],
-            ['weaponpane', weaponpane],
-            ['pickup', pickupdefaults],
-            ['warnheaders', warningheaders],
-            ['saveform', saveForms],
-            ['pettweak', processPetTable],
-            ['alchemytweak', alchemytweak],
-            ['accesskeys', accesskeys],
-            ['inventory', inventory],
-            ['targetsetup', targetsetupdefaults],
-            ['recapdefaults', recapdefaults],
-            ['speakdefaults', speakdefaults],
-        ];
-        len = libCalls.length;
-        for (i = 0; i < len; i++) {
-            if (getSetting('run-'+libCalls[i][0]) == 'true') {
-                try {
-                    libCalls[i][1](); // safely try to call a function; catch if it throws exception
-                } catch(err) {
-                    logLibC('Error running '+libCalls[i][0]+' with message ' + err.message );
-                }
+    //these run using settings checks, and character must be logged in
+    if (!charinfo || !charinfo.id) { return; }
+    libCalls = [
+        ['removecolour', removecolours],
+        ['safety', safebuttons],
+        ['hilights', showhilights],
+        ['thinbar', tweakbars],
+        ['weaponpane', weaponpane],
+        ['pickup', pickupdefaults],
+        ['warnheaders', warningheaders],
+        ['saveform', saveForms],
+        ['pettweak', processPetTable],
+        ['alchemytweak', alchemytweak],
+        ['accesskeys', accesskeys],
+        ['inventory', inventory],
+        ['targetsetup', targetsetupdefaults],
+        ['recapdefaults', recapdefaults],
+        ['speakdefaults', speakdefaults],
+    ];
+    len = libCalls.length;
+    for (i = 0; i < len; i++) {
+        if (getSetting('run-'+libCalls[i][0]) == 'true') {
+            try {
+                libCalls[i][1](); // safely try to call a function; catch if it throws exception
+            } catch(err) {
+                logLibC('Error running '+libCalls[i][0]+' with message ' + err.message );
             }
         }
     }
