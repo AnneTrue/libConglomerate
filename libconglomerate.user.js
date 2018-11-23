@@ -187,7 +187,9 @@ function desctextmatches(descdiv, descPieces) {
     // boilerplate code for lights/shadows
     var lights, shadows;
 
-    descdiv.appendChild(document.createTextNode(descPieces.firsttext));
+    if (descPieces.firsttext) {
+        descdiv.appendChild(document.createTextNode(descPieces.firsttext));
+    }
 
     // if lights enabled, set span's light class to on/off; else just make it text
     if (descPieces.lightstatus) {
