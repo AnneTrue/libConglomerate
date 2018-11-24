@@ -1,6 +1,9 @@
 # libConglomerate
 Assorted userscripts for NexusClash, along with a per-character, per-browser setting framework.
 
+The largest two features are the inventory and the alchemy modules, which vastly improve upon the static Nexus Clash UI.
+
+
 ## Version 3.1
 ### Complete Feature List:
 * Toggled Settings 
@@ -116,6 +119,7 @@ Assorted userscripts for NexusClash, along with a per-character, per-browser set
   * Display Potion Counts adds a count of potions in the safe (or if none, those in a footlocker) to the recipe name. Useful for an at-a-glance overview of potion stocks. 
   * Potions Critical/Low set the thresholds for the display potion count colours. Blue is good, Brown is low, Red is critical, Bold Black is 0. 
   * Always Hilight Safe always adds the background colours to safe and footlocker and alchemy dropdowns. 
+  * Short Potion Name for Research removes the "Potion of " prefix from potions to research. This makes it easier to type a potion name to select the target you want to research (instead of typing the full "potion of" every time).
   * Suppress Component Hilighting is not recommended by default. Disables the hilighting of components when they are in the safe or inventory. 
   * Suppress Leech Warning is not recommended by default. Prevents the alternate brew button when there is a leech in your inventory. 
 
