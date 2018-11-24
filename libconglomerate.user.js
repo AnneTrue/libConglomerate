@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           LibC
-// @version        3.1.3
+// @version        3.1.4
 // @description    Lib's Conglomerated Scripts
 // @namespace      https://github.com/AnneTrue/
 // @author         Anne True
@@ -16,7 +16,7 @@
 // ==/UserScript==
 
 (function () {
-var versionStr = '3.1.3'; // version updates go here too!
+var versionStr = '3.1.4'; // version updates go here too!
 
 // logs to console; can disable if you want
 var libCLogging = true;
@@ -1039,10 +1039,13 @@ function alchemytweak() {
         "//tbody[tr/td/div[@class='panetitle']='Recipe Tracker']/tr[last()]/td",
         document, null,XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null
     );
-    if (panes.snapshotLength !== 1) { return; }
     if (getSetting('alchemytweak-extra-alwayshilight') == 'true' || panes.snapshotLength === 1) {
         tempSI = parseSafeItems();
         inventoryItems = parseInventoryItems();
+    }
+    if (panes.snapshotLength !== 1) { return; }
+    if (getSetting('alchemytweak-extra-shortenresearch') == 'true') {
+        shortenResearch();
     }
     alchemyShowCount = (getSetting('alchemytweak-extra-count-show') == 'true');
     alchemySafeButton = (getSetting('alchemytweak-extra-safebutton') == 'true');
@@ -1363,6 +1366,16 @@ function setToggleAll(panetitle) {
     close.addEventListener('click', function() { toggleAll('summary'); }, false);
     panetitle.appendChild(open);
     panetitle.appendChild(close);
+}
+
+
+function shortenResearch() {
+    var i, len, alchemySelects;
+    alchemySelects = document.evaluate("//form[@name='alchemyresearch']/select[@name='potion']/option", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null );
+    len = alchemySelects.snapshotLength;
+    for (i = 0; i < len; i++) {
+        alchemySelects.snapshotItem(i).innerHTML = alchemySelects.snapshotItem(i).innerHTML.replace(/Potion of /, '');
+    }
 }
 
 
@@ -1933,6 +1946,7 @@ function libSettings() {
         ['alchemytweak', 'f', 'Potions Critical', 'count-low', 'Everything under this amount is considered to be critically low.'],
         ['alchemytweak', 'f', 'Potions Low', 'count-mid', 'Everything between this amount and the critical amount is considered to be slightly low.'],
         ['alchemytweak', 'b', 'Always Hilight Safe', 'alwayshilight', 'Colours the inventory and safe drop-downs according to component rarity.'],
+        ['alchemytweak', 'b', 'Short Potion Name for Research', 'shortenresearch', 'Removes the leading "Potion of " prefix from options in the alchemy research pane. This is useful for hot-key selecting potions.'],
         ['alchemytweak', 'b', 'Suppress Component Hilighting', 'suppress', 'NOT RECOMMENDED BY DEFAULT: Removes the hilighting from components for when they are in the safe or your inventory.'],
         ['alchemytweak', 'b', 'Suppress Leech Warning', 'suppresslw', 'NOT RECOMMENDED BY DEFAULT: To disable the alternate button when leeches are in your inventory.'],
         ['accesskeys', 's', 'Fort-bash Key', 'fort', 'Adds an accesskey for fort-bashing. Suggested default F.', accessKeyFactory('F')],
