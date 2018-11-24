@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           LibC
-// @version        3.1.2
+// @version        3.1.3
 // @description    Lib's Conglomerated Scripts
 // @namespace      https://github.com/AnneTrue/
 // @author         Anne True
@@ -16,7 +16,7 @@
 // ==/UserScript==
 
 (function () {
-var versionStr = '3.1.2'; // version updates go here too!
+var versionStr = '3.1.3'; // version updates go here too!
 
 // logs to console; can disable if you want
 var libCLogging = true;
@@ -1282,7 +1282,7 @@ function parseSafeItems() {
             items[component][safeType] = componentId;
         }
     }
-    alchemyItems = document.evaluate("//form[@name='alchemyresearch' or @name='alchemytransmute']/select[@name='itemid']/option", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null );
+    alchemyItems = document.evaluate("//form[@name='alchemyresearch' or @name='alchemytransmute']/select[@name='itemid' or @name='transmute']/option", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null );
     len = alchemyItems.snapshotLength;
     for (i = 0; i < len; i++) {
         if (alchemyComponents[alchemyItems.snapshotItem(i).innerHTML]) { alchemyItems.snapshotItem(i).className = 'safeitem-' + alchemyComponents[alchemyItems.snapshotItem(i).innerHTML]; }
@@ -1293,7 +1293,7 @@ function parseSafeItems() {
 
 function parseInventoryItems() {
     var items = [], len, i, component, value;
-    var safeOptions = document.evaluate("//form[@name='safestock' or @name='alchemyresearch']/select[@name='item' or @name='itemid']/option",document,null,XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,null);
+    var safeOptions = document.evaluate("//form[@name='safestock' or @name='alchemyresearch' or @name='give']/select[@name='item' or @name='give_item_id']/option",document,null,XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,null);
     len = safeOptions.snapshotLength;
     for (i = 0; i < len; i++) {
         component = safeOptions.snapshotItem(i).innerHTML;
