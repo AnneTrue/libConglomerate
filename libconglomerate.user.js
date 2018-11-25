@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           LibC
-// @version        3.1.4
+// @version        3.1.5
 // @description    Lib's Conglomerated Scripts
 // @namespace      https://github.com/AnneTrue/
 // @author         Anne True
@@ -16,7 +16,7 @@
 // ==/UserScript==
 
 (function () {
-var versionStr = '3.1.4'; // version updates go here too!
+var versionStr = '3.1.5'; // version updates go here too!
 
 // logs to console; can disable if you want
 var libCLogging = true;
@@ -178,6 +178,10 @@ function showhilights() {
         }
     descdiv.appendChild(targetdesc);
     desc.parentNode.insertBefore(descdiv, desc);
+    if (desc.nextElementSibling.tagName.toLowerCase() == 'br') {
+        // remove extra <br> line break
+        desc.nextElementSibling.remove()
+    }
     desc.remove(); // we copied things, remove (redundant) original
     }
 }
@@ -281,16 +285,22 @@ function sortpeople() {
     count = (peopleLists.victims.length + peopleLists.friends.length);
     if (count != parseInt(peopleMatch[1])) { logLibC('Count fails to match peopleMatch count'); return; } // just in case
     if (count == 1) {
-        h = '<p id="chars_desc">There is 1 other person here.</p>\n';
+        h = '<p id="chars_desc">There is 1 other person here.</p>';
     } else {
-        h = '<p id="chars_desc">There are ' + count + ' other people here.</p>\n';
+        h = '<p id="chars_desc">There are ' + count + ' other people here.</p>';
     }
 
     h += createSortedPeopleHTML(peopleLists.victims, 'victims', showhp, showmp);
     h += createSortedPeopleHTML(peopleLists.friends, 'friends', showhp, showmp);
 
     h = '<div id="other_chars">' + h + '</div>';
-    document.documentElement.innerHTML = document.documentElement.innerHTML.replace(peopleMatch[0], h);
+    tileDescNode.innerHTML = tileDescNode.innerHTML.replace(peopleMatch[0], h);
+    for (i=0; i<2; i++) {
+        if (document.getElementById('other_chars').nextElementSibling.tagName.toLowerCase() == 'br') {
+            // remove extra <br> line break
+            document.getElementById('other_chars').nextElementSibling.remove()
+        }
+    }
 
     // Optional showpetmaster trigger
     if (showpetmaster) { petmaster(); }
