@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           LibC
-// @version        3.1.5
+// @version        3.1.6
 // @description    Lib's Conglomerated Scripts
 // @namespace      https://github.com/AnneTrue/
 // @author         Anne True
@@ -16,7 +16,7 @@
 // ==/UserScript==
 
 (function () {
-var versionStr = '3.1.5'; // version updates go here too!
+var versionStr = '3.1.6'; // version updates go here too!
 
 // logs to console; can disable if you want
 var libCLogging = true;
@@ -178,7 +178,7 @@ function showhilights() {
         }
     descdiv.appendChild(targetdesc);
     desc.parentNode.insertBefore(descdiv, desc);
-    if (desc.nextElementSibling.tagName.toLowerCase() == 'br') {
+    if (desc.nextElementSibling && desc.nextElementSibling.tagName.toLowerCase() == 'br') {
         // remove extra <br> line break
         desc.nextElementSibling.remove()
     }
@@ -296,7 +296,7 @@ function sortpeople() {
     h = '<div id="other_chars">' + h + '</div>';
     tileDescNode.innerHTML = tileDescNode.innerHTML.replace(peopleMatch[0], h);
     for (i=0; i<2; i++) {
-        if (document.getElementById('other_chars').nextElementSibling.tagName.toLowerCase() == 'br') {
+        if (document.getElementById('other_chars').nextElementSibling && document.getElementById('other_chars').nextElementSibling.tagName.toLowerCase() == 'br') {
             // remove extra <br> line break
             document.getElementById('other_chars').nextElementSibling.remove()
         }
@@ -2079,18 +2079,24 @@ function addGlobalSetting(tdid, title, setting, hover) {
 
 function runLibC() {
     var libGlobalCalls, libCalls, i, len;
-    if (getSetting('run-sortpeople') == 'true') { sortpeople(); } //this breaks if not running first. innerHTML editing deletes dom elements
     libGlobalCalls = [
         ['messagehistory', messagehistory],
     ];
     len = libGlobalCalls.length;
     for (i = 0; i < len; i++) {
-        if (getGlobalSetting(libGlobalCalls[i][0]) == 'true') { libGlobalCalls[i][1](); }
+        if (getGlobalSetting(libGlobalCalls[i][0]) == 'true') {
+            try {
+                libGlobalCalls[i][1]();
+            } catch(err) {
+                logLibC('Error during global call `' + libGlobalCalls[i][0] + '`: '+ err.message)
+            }
+        }
     }
     libSettings();
     //these run using settings checks, and character must be logged in
     if (!charinfo || !charinfo.id) { return; }
     libCalls = [
+        ['sortpeople', sortpeople],
         ['removecolour', removecolours],
         ['safety', safebuttons],
         ['hilights', showhilights],
