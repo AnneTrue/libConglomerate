@@ -1,0 +1,5 @@
+.libc-settingtable { width: 100%; }
+.libc-settingrow { background-color: #dddddd; }
+.libc-settingname { width: 20px; }
+.libc-settinglist { width: 90px; }
+.libc-settingspan { background-color: #bbbbbb; border: 1px dotted black; }
