@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        LibC Scaffolding
-// @version     4.0.0
+// @version     1.0
 // @description Scaffolding and API for libConglomerate
 // @namespace   https://github.com/AnneTrue/
 // @author      Anne True
@@ -15,17 +15,17 @@
 // @grant       GM.deleteValue
 // @grant       GM.getResourceUrl
 // @require     https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
+// @resource    scaffoldingCSS css/scaffolding.css
 // ==/UserScript==
-
-// todo: scaffolding CSS, inject style
 
 function LibCScaffolding() {
   'use strict';
-  this.version = '4.0.0'; // version updates go here too!
+  this.version = `${GM.info.script.version}`;
   // logs to console; can disable if you want
   this.logging = true;
   // verbose logging, set true for dev-work
   this.verbose = false;
+
 
   this.log = async (message) => {
     if (this.logging) {
@@ -33,19 +33,41 @@ function LibCScaffolding() {
     }
   }
 
+
   this.debug = async (message) => {
     if (this.verbose) {
       await this.log(message);
     }
   }
 
+
   this.error = async (message) => {
     console.error(`[LibC-${this.version}]:  ${message}`);
   }
 
+
+  // CSS
+  this.addGlobalStyle = async (url) => {
+    // injects a resource link into the global style sheet
+    const head = document.getElementsByTagName('head')[0];
+    if (!head) {
+      this.error('addGlobalStyle failed to find the document head');
+      return;
+    }
+    const style = document.createElement('link');
+    style.setAttribute('type', 'text/css');
+    style.setAttribute('rel', 'stylesheet');
+    style.setAttribute('href', url);
+    head.appendChild(style);
+  }
+
+  this.addGlobalStyle(GM.getResourceUrl('scaffoldingCSS'));
+
+
   // true if a character is logged into the game module
-  // used to determine whether the scripts can run
+  // used to determine whether the local scripts can run
   this.inGame = false;
+
 
   // Character Info
   this.charinfo = {
@@ -58,10 +80,12 @@ function LibCScaffolding() {
     'div':null,
   };
 
+
   // libC Promises: libC will only run after all promises complete
   this.promises = [];
   this.runCalled = false;
-  
+
+
   function DeferredPromise() {
     let res, rej;
     const p = new Promise(
@@ -71,7 +95,8 @@ function LibCScaffolding() {
     p.reject = rej;
     return p;
   }
-  
+
+
   this.registerPromise = () => {
     const promise = DeferredPromise();
     this.promises.push(promise);
@@ -82,12 +107,14 @@ function LibCScaffolding() {
   // libC Modules
   this.modules = [];
 
+
   this.registerModule = async (id, name, type, description) => {
     const mod = new LibCModule(id, name, type, description);
     this.modules.push(mod);
     this.debug(`Registered module ${mod.name}`);
     return mod
   }
+
 
   const addToRow = (tdid, element) => {
     const td = document.getElementById(`libc-setting-${tdid}`);
@@ -102,6 +129,7 @@ function LibCScaffolding() {
     td.appendChild(document.createElement('br'));
   }
 
+
   const createSettingsRow = async (settingTable, mod) => {
     const settingsRow = document.createElement('tr');
     settingsRow.className = 'libc-settingrow';
@@ -115,6 +143,7 @@ function LibCScaffolding() {
     settingsRow.appendChild(settingList);
     settingTable.appendChild(settingsRow);
   }
+
 
   const createSettingsPane = async () => {
     const tableSnapshot = document.evaluate(
@@ -158,6 +187,7 @@ function LibCScaffolding() {
     }
   }
 
+
   this.runLibC = async () => {
     if (this.runCalled) {
       this.log('runLibC has already been called. Preventing duplicate run.');
@@ -189,6 +219,7 @@ function LibCScaffolding() {
       }
     }
   }
+
 
   // Character Info Parsing
   (() => {
@@ -232,6 +263,7 @@ function LibCScaffolding() {
     }
   })();
 
+
   this.getSetting = async (settingName, def=undefined) => {
     const value = await GM.getValue(settingName);
     if (typeof value !== 'undefined') {
@@ -240,17 +272,21 @@ function LibCScaffolding() {
     return def
   }
 
+
   this.setSetting = async (settingName, value) => {
     return await GM.setValue(settingName, JSON.stringify(value));
   }
+
 
   const getLocalSettingName = (settingName) => {
     return `libc-${this.charinfo.id}-${settingName}`;
   }
 
+
   const getGlobalSettingName = (settingName) => {
     return `libc-global-${settingName}`;
   }
+
 
   this.getLocalSetting = async (settingName, def) => {
     if (!this.inGame || typeof this.charinfo.id === 'undefined') {
@@ -260,9 +296,11 @@ function LibCScaffolding() {
     return await this.getSetting(getLocalSettingName(settingName), def);
   }
 
+
   this.getGlobalSetting = async (settingName, def) => {
     return await this.getSetting(getGlobalSettingName(settingName), def);
   }
+
 
   this.setLocalSetting = async (settingName, value) => {
     if (!this.inGame || typeof this.charinfo.id === 'undefined') {
@@ -272,16 +310,20 @@ function LibCScaffolding() {
     return await this.setSetting(getLocalSettingName(settingName), value);
   }
 
+
   this.setGlobalSetting = async (settingName, value) => {
     return await this.setSetting(getGlobalSettingName(settingName), value);
   }
 }
 
+
+// Create libC object attached to the window for other scripts to interact with
 if (typeof libC === 'undefined') {
   this.libC = new LibCScaffolding();
 }
 
 
+// object constructor representing a module-specific setting
 function LibCSetting(settingType, id, name, description, extras) {
   if (['checkbox', 'select', 'textfield'].indexOf(settingType) === -1) {
     libC.error(`Error constructing LibCSetting ${id}: Unrecognised type ${settingType}`);
@@ -303,6 +345,7 @@ function LibCSetting(settingType, id, name, description, extras) {
     checkbox.addEventListener('click', mod.getCheckboxListener(this.id), false);
     return checkbox;
   }
+
 
   const getSelect = async (mod) => {
     const select = document.createElement('select');
@@ -326,6 +369,7 @@ function LibCSetting(settingType, id, name, description, extras) {
     return select;
   }
 
+
   const getTextfield = async (mod) => {
     const textfield = document.createElement('input');
     textfield.type = 'text';
@@ -340,6 +384,7 @@ function LibCSetting(settingType, id, name, description, extras) {
     textfield.addEventListener('input', mod.getTextfieldListener(this.id), false);
     return textfield;
   }
+
 
   this.getSettingsRowElement = async (mod) => {
     const tempspan = document.createElement('span');
@@ -360,6 +405,7 @@ function LibCSetting(settingType, id, name, description, extras) {
 }
 
 
+// object constructor representing a script module, which is passed in to any methods registered with it
 function LibCModule(id, name, localType, description) {
   if (['global', 'local'].indexOf(localType) === -1) {
     libC.error(`Error constructing LibCModule ${id}: Unrecognised type ${localType}`);
@@ -403,7 +449,7 @@ function LibCModule(id, name, localType, description) {
     }
   }
 
-  
+
   this.getTextfieldListener = (id) => {
     return async (e) => {
       this.log(`Set ${this.id}-${id} to ${e.target.value}`);
@@ -420,11 +466,12 @@ function LibCModule(id, name, localType, description) {
   }
 
 
-  this.registerSetting = async (type, id, name, desc, extra) => {
+  this.registerSetting = async (type, id, name, desc, extra=null) => {
     const setting = new LibCSetting(type, id, name, desc, extra);
     this.settings.push(setting);
     return setting
   }
+
 
   this.getSettingElements = async () => {
     const elementPromises = this.settings.map( async (libCSet) => {
@@ -437,6 +484,7 @@ function LibCModule(id, name, localType, description) {
     return resultElements
   }
 
+
   this.registerMethod = async (type, method) => {
     if (type === 'sync') {
       this.syncMethods.push(method);
@@ -448,6 +496,7 @@ function LibCModule(id, name, localType, description) {
     return this
   }
 
+
   this.getModuleEnableElement = async () => {
     const moduleEnableSetting = new LibCSetting(
       'checkbox', 'module_enabled', this.name, this.description, null
@@ -455,12 +504,14 @@ function LibCModule(id, name, localType, description) {
     return await moduleEnableSetting.getSettingsRowElement(this);
   }
 
+
   this.isEnabled = async () => {
     if (this.localType === 'local' && !libC.inGame) {
       return false;
     }
     return await this.getSetting('module_enabled');
   }
+
 
   this.runSync = () => {
     try {
@@ -472,6 +523,7 @@ function LibCModule(id, name, localType, description) {
     }
   }
 
+
   this.runAsync = async () => {
     try {
       const runPromises = this.asyncMethods.map((method) => { method(this); });
@@ -481,35 +533,3 @@ function LibCModule(id, name, localType, description) {
     }
   }
 }
-
-// EXAMPLE CODE:
-/*
-// must be an async function to use await
-(async () => {
-  libC.log('Running Example Code');
-  libC.verbose = true;
-  
-  // At the start of our script we register a promise to prevent other scripts
-  // from running libC Framework before we have finished registering our modules.
-  const myPromise = libC.registerPromise();
-  
-  // .registerModule returns a promise, use await to resolve the promise to the LibCModule
-  const mod = await libC.registerModule('testmodule', 'Test Module', 'global', 'testing purposes');
-
-  // mod.registerMethod(type, method)
-  // type can be 'sync' or 'async'; sync methods run before anything else and
-  // block execution while running. async methods run after all sync methods are finished, and
-  // async methods are all run simultaneously.
-  await mod.registerMethod('sync', (mod) => { mod.log('inside testmodule sync method'); });
-  // mod.registerSetting(type, identifier, display name, description, extra)
-  // type can be 'textfield', 'select', 'checkbox'
-  // extra must be set to null unless type is 'textfield'
-  // if type is textfield, extra must be list of objects with properties 'value' and 'text'
-  await mod.registerSetting('textfield', 'testVal1', 'Test Value 1', 'has a test desc', null);
-  await mod.registerMethod('async', async (mod) => {
-    mod.log(`async method results with: ${await mod.getSetting('testVal1', 'failed')}`);
-  });
-  myPromise.resolve();
-  await libC.runLibC();
-})();
-*/
