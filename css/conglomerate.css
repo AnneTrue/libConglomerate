@@ -1,0 +1,118 @@
+/* Sort Characters */
+.hptext { font-size: xx-small; color: #ff0099; }
+.hptext2 { font-size: xx-small; color: black; }
+.mptext { font-size: xx-small; color: darkblue; }
+.char { white-space: nowrap; }
+
+/* Pet Interface */
+.petstatus-aplow { background-color: #999999; }
+.petstatus-apcritical { background-color: #999933; }
+.petstatus-mpsurplus { background-color: #cc6677; color:black; }
+.petstatus-nextpet td {
+  border-top: 3px solid black;
+  border-bottom: 3px solid black;
+}
+.petstatus-nextpet2 td {
+  border-top: 2px solid black;
+  border-bottom: 2px solid black;
+}
+
+/* Alchemy Interface */
+tr.recipe-complete { background-color: #dddddd; }
+tr.recipe-partial { background-color: #bbbbbb; }
+tr.recipe-empty { background-color: #999999; color: #444444; }
+span.component-rare { color: #882255; }
+span.component-uncommon { color: #117733; }
+span.component-common { }
+td.component-rare { color: #882255; font-weight: bold; }
+td.component-uncommon { color: #117733; font-weight: bold; }
+td.component-common { font-weight: bold; }
+.component-undefined { font-style: italic; }
+.component-fixed { font-style: italic; }
+.immutable { font-weight: bold; }
+span.match-safe { background-color: #ddcc77; }
+span.match-inventory { background-color: #88ccee; }
+.safeEmpty { color: #000000; font-weight: bold; }
+.safeLow { background-color: #cc6677; }
+.safeMid { background-color: #ddcc77; }
+.safeHigh { background-color: #88ccee; }
+.retrieveSafe {
+  background: none;
+  border: none;
+  color: blue;
+  text-decoration: underline;
+  cursor: pointer;
+  margin: 0;
+  padding: 0;
+  display: inline;
+}
+.completionlevel-inventory { background-color: #44aa99; }
+.completionlevel-safe { background-color: #999933; }
+.safeitem-rare { background-color: #882255; color: #ffffff; }
+.safeitem-uncommon { background-color: #117733; color: #ffffff; }
+.safeitem-common { background-color: #999999; color: #ffffff; }
+tr.recipe-partial form { display: none; }
+.recipename { width: 99px; }
+.recipelist { width: 170px; }
+.summarycell { width: 26px; }
+.summary-empty { background-color: #777777; }
+td.match-safe { background-color: #ddcc77; }
+td.match-inventory { background-color: #88ccee; }
+.libtoggleall {
+  background: none;
+  border: none;
+  color: white;
+  text-decoration: underline;
+  cursor: pointer;
+  margin: 0;
+  padding: 0;
+  display: inline;
+}
+
+/* General & Message History Styling */
+.libNoWrap { white-space: nowrap ! important; }
+.libHide { display: none ! important; }
+.libBarBck { position: absolute; left: 1; top: 18; display: inline; z-index: 0 }
+.libBar { position: absolute; left: 1; top: 18; display: inline; z-index: 1 }
+.libPetHit { font-size: smaller; color: lightcoral ! important; padding-left: 4em; }
+.libPetHitMe { font-size: smaller; color: red ! important; padding-left: 4em; }
+.libPetKill { font-size: smaller; color: crimson; padding-left: 4em; }
+.libPetMiss { font-size: smaller; color: #CAA083; padding-left: 4em; }
+.libPetHealOthers { font-size: smaller; color: #5050aa; padding-left: 4em; }
+.libPetHealMe { font-size: smaller; color: #0808aa; padding-left: 4em; }
+.libPetRejuv { font-size: smaller; color: #aa50aa; padding-left: 4em; }
+.libPetDespawn { font-size: smaller; color: #ff8000; padding-left: 4em;}
+.libAttackHit { color: red ! important; }
+.libAttackMiss { color: deeppink; }
+.libAttacked { color: red; font-weight: 600; }
+.libAttackedbyEnvironment { color: red; font-weight: 100; }
+.libHealed { color: #0808aa; }
+.libAchievement { font-size: smaller; padding-left: 4em; }
+.libAchievementColour { color: #aa0000; }
+.libSpeech { color: dodgerblue; }
+.libAction { color: #aaaaff; }
+.libWhisper{ color: MediumOrchid; }
+.libMe{ color: darkblue; }
+.libReceiveItem{ color: #ff8040; }
+.libCraft{ color: #8d4f9d; }
+.libSearchNothing{ color: #8c8c55; }
+.libSearchSuccess{ color: #8c8c00; }
+.libShadows{ color: #dd0101; font-weight: bold; }
+.libLights{ color: dodgerblue; }
+.libLightsOff{ color: #bf4020; }
+.libFaded { color: red; }
+.libKill { color: red; font-weight: 600; }
+.libGave { color: #bf4020; }
+.libSummon { color: red ! important; }
+.libFort { color: #9900ff; font-size: smaller; }
+.libGood { color: #11dd11; }
+.libBad { color: #dd1111; }
+.libLink {
+  background: none;
+  border: none;
+  color: black;
+  cursor: pointer;
+  margin: 0;
+  padding: 0;
+  display: inline;
+}
