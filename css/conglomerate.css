@@ -72,8 +72,6 @@ td.match-inventory { background-color: #88ccee; }
 /* General & Message History Styling */
 .libNoWrap { white-space: nowrap ! important; }
 .libHide { display: none ! important; }
-.libBarBck { position: absolute; left: 1; top: 18; display: inline; z-index: 0 }
-.libBar { position: absolute; left: 1; top: 18; display: inline; z-index: 1 }
 .libPetHit { font-size: smaller; color: lightcoral ! important; padding-left: 4em; }
 .libPetHitMe { font-size: smaller; color: red ! important; padding-left: 4em; }
 .libPetKill { font-size: smaller; color: crimson; padding-left: 4em; }
