@@ -18,7 +18,7 @@
 // @resource    scaffoldingCSS css/scaffolding.css
 // ==/UserScript==
 
-function LibCScaffolding() {
+class LibCScaffolding() {
   'use strict';
   this.version = `${GM.info.script.version}`;
   // logs to console; can disable if you want
@@ -87,7 +87,7 @@ function LibCScaffolding() {
   this.runCalled = false;
 
 
-  function DeferredPromise() {
+  function getDeferredPromise() {
     let res, rej;
     const p = new Promise(
       (resolve, reject) => { res = resolve; rej = reject; }
@@ -99,7 +99,7 @@ function LibCScaffolding() {
 
 
   this.registerPromise = () => {
-    const promise = DeferredPromise();
+    const promise = getDeferredPromise();
     this.promises.push(promise);
     return promise
   }
@@ -117,7 +117,7 @@ function LibCScaffolding() {
   }
 
 
-  const addToRow = (tdid, element) => {
+  const addToRow = async (tdid, element) => {
     const td = document.getElementById(`libc-setting-${tdid}`);
     if (!td) {
       this.error(`addToRow failed to find settingsRow with <td>.id ${tdid}`);
@@ -183,7 +183,7 @@ function LibCScaffolding() {
       await createSettingsRow(temptable, libCMod);
       const settingElements = await libCMod.getSettingElements();
       for (const setElem of settingElements) {
-        addToRow(libCMod.id, setElem);
+        await addToRow(libCMod.id, setElem);
       }
     }
   }
@@ -202,7 +202,7 @@ function LibCScaffolding() {
       if (await libCMod.isEnabled() !== true) { continue; }
       try {
         this.debug(`Running (sync) module [${libCMod.name}]`);
-        libCMod.runSync();
+        await libCMod.runSync();
       } catch (err) {
         this.error(`Error while (sync) running ${libCMod.name}: ${err.message}`);
       }
@@ -210,15 +210,16 @@ function LibCScaffolding() {
 
     await createSettingsPane();
 
-    for (const libCMod of this.modules) {
-      if (!await libCMod.isEnabled()) { continue; }
+    const mapRunAsync = async (libCMod) => {
+      if (!await libCMod.isEnabled()) { return; }
       try {
-        this.debug(`Running (async) module [${libCMod.name}]`);
-        libCMod.runAsync();
+        await libCMod.runAsync();
       } catch (err) {
         this.error(`Error while (async) running ${libCMod.name}: ${err.message}`);
       }
     }
+    const asyncPromises = this.modules.map(mapRunAsync);
+    await Promise.all(asyncPromises);
   }
 
 
@@ -324,7 +325,7 @@ if (typeof libC === 'undefined') {
 
 
 // object constructor representing a module-specific setting
-function LibCSetting(settingType, id, name, description, extras) {
+class LibCSetting(settingType, id, name, description, extras) {
   if (['checkbox', 'select', 'textfield'].indexOf(settingType) === -1) {
     libC.error(`Error constructing LibCSetting ${id}: Unrecognised type ${settingType}`);
   }
@@ -406,7 +407,7 @@ function LibCSetting(settingType, id, name, description, extras) {
 
 
 // object constructor representing a script module, which is passed in to any methods registered with it
-function LibCModule(id, name, localType, description) {
+class LibCModule(id, name, localType, description) {
   if (['global', 'local'].indexOf(localType) === -1) {
     libC.error(`Error constructing LibCModule ${id}: Unrecognised type ${localType}`);
     return
@@ -513,10 +514,10 @@ function LibCModule(id, name, localType, description) {
   }
 
 
-  this.runSync = () => {
+  this.runSync = async () => {
     try {
       for (const method of this.syncMethods) {
-        method(this);
+        await method(this);
       }
     } catch (err) {
       this.error(`runSync error: ${err.message}`);
