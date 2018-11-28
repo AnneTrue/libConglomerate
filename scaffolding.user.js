@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        LibC Scaffolding
-// @version     1.0
+// @version     1.0.1
 // @description Scaffolding and API for libConglomerate
 // @namespace   https://github.com/AnneTrue/
 // @author      Anne True
@@ -61,7 +61,8 @@ function LibCScaffolding() {
     head.appendChild(style);
   }
 
-  this.addGlobalStyle(GM.getResourceUrl('scaffoldingCSS'));
+  // Add scaffolding CSS here
+  (async () => { this.addGlobalStyle(await GM.getResourceUrl('scaffoldingCSS')); } )();
 
 
   // true if a character is logged into the game module
@@ -195,7 +196,7 @@ function LibCScaffolding() {
     }
     this.runCalled = true;
     // wait for module registration promises
-    Promise.all(this.promises);
+    await Promise.all(this.promises);
 
     for (const libCMod of this.modules) {
       if (await libCMod.isEnabled() !== true) { continue; }
@@ -257,7 +258,6 @@ function LibCScaffolding() {
         .then((hp) => { this.charinfo.hp = hp; });
       const mp = statParser(this.charinfo.div, 'Magic Points', 'MP')
         .then((mp) => { this.charinfo.mp = mp; });
-      Promise.all([ap, hp, mp]);
     } catch (err) {
       this.error(`Error in getCharacterInfo: ${err.message}`);
     }
@@ -527,7 +527,7 @@ function LibCModule(id, name, localType, description) {
   this.runAsync = async () => {
     try {
       const runPromises = this.asyncMethods.map((method) => { method(this); });
-      Promise.all(runPromises);
+      await Promise.all(runPromises);
     } catch (err) {
       this.error(`runAsync error: ${err.message}`);
     }
