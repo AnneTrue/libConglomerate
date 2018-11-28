@@ -15,10 +15,12 @@
 // @grant       GM.deleteValue
 // @grant       GM.getResourceUrl
 // @require     https://github.com/AnneTrue/libConglomerate/raw/master/scaffolding.user.js
+// @resource    scaffoldingCSS https://github.com/AnneTrue/libConglomerate/raw/master/css/scaffolding.css
 // @resource    scaffoldTestCss myCss.css
 // ==/UserScript==
 
-// the @require and any @resource can be a path relative to the download location, e.g. require scaffolding.user.js
+// the @require and any @resource can be a path relative to the download location
+// note that the scaffoldingCSS resource is required in the top-level script, or else it cannot reach it 
 // all the grant values must be present for the script to work
 
 async function myComplexMethod(libCModule) {
