@@ -488,8 +488,8 @@ promiseList.push((async () => {
     if (displayCount === 1) {
       countText = '<p id="chars_desc">There is 1 other person here.</p>';
     }
-    const victimText = createCharsHTML(charLists.victims, 'victims');
-    const friendText = createCharsHTML(charLists.friends, 'friends');
+    const victimText = await createCharsHTML(charLists.victims, 'victims');
+    const friendText = await createCharsHTML(charLists.friends, 'friends');
     const divText = `<div id="other_chars">${countText}${victimText}${friendText}</div>`;
     tileDescNode.innerHTML = tileDescNode.innerHTML.replace(peopleMatch[0], divText);
         
