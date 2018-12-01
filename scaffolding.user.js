@@ -445,7 +445,7 @@ function LibCModule(id, name, localType, description) {
 
   this.getCheckboxListener = (id) => {
     return async (e) => {
-      this.log(`Toggled ${this.id}-${id} to ${e.target.checked}`);
+      this.log(`Toggled ${id} to ${e.target.checked}`);
       await this.setSetting(id, e.target.checked);
     }
   }
@@ -453,7 +453,7 @@ function LibCModule(id, name, localType, description) {
 
   this.getTextfieldListener = (id) => {
     return async (e) => {
-      this.log(`Set ${this.id}-${id} to ${e.target.value}`);
+      this.log(`Set ${id} to ${e.target.value}`);
       await this.setSetting(id, e.target.value);
     }
   }
@@ -461,8 +461,8 @@ function LibCModule(id, name, localType, description) {
 
   this.getSelectListener = (id) => {
     return async (e) => {
-      this.log(`set ${e.target.id} to ${e.target.options[e.target.selectedIndex].value}`);
-      await this.setSetting(e.target.id, e.target.options[e.target.selectedIndex].value);
+      this.log(`Set ${id} to ${e.target.options[e.target.selectedIndex].value}`);
+      await this.setSetting(id, e.target.options[e.target.selectedIndex].value);
     }
   }
 
