@@ -18,7 +18,7 @@
 // @resource    scaffoldingCSS css/scaffolding.css
 // ==/UserScript==
 
-class LibCScaffolding() {
+function LibCScaffolding() {
   'use strict';
   this.version = `${GM.info.script.version}`;
   // logs to console; can disable if you want
@@ -325,7 +325,7 @@ if (typeof libC === 'undefined') {
 
 
 // object constructor representing a module-specific setting
-class LibCSetting(settingType, id, name, description, extras) {
+function LibCSetting(settingType, id, name, description, extras) {
   if (['checkbox', 'select', 'textfield'].indexOf(settingType) === -1) {
     libC.error(`Error constructing LibCSetting ${id}: Unrecognised type ${settingType}`);
   }
@@ -407,7 +407,7 @@ class LibCSetting(settingType, id, name, description, extras) {
 
 
 // object constructor representing a script module, which is passed in to any methods registered with it
-class LibCModule(id, name, localType, description) {
+function LibCModule(id, name, localType, description) {
   if (['global', 'local'].indexOf(localType) === -1) {
     libC.error(`Error constructing LibCModule ${id}: Unrecognised type ${localType}`);
     return
