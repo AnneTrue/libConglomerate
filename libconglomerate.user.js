@@ -93,6 +93,7 @@ function removeNextBreaks(element, removeCount=1) {
 
 //#############################################################################
 promiseList.push((async () => {
+  if (!libC.inGame) { return; }
   const mod = await libC.registerModule(
     'hilights',
     'Description Hilights',
@@ -224,12 +225,13 @@ promiseList.push((async () => {
 
 //#############################################################################
 promiseList.push((async () => {
+  if (!libC.inGame) { return; }
   const mod = await libC.registerModule(
     'sortchars',
     'Sort Characters',
     'local',
     'Sorts characters in a location based on allegiance, and allows further sorting styles and display of information.',
-    );
+  );
 
   const sortOptions = [
     {'value':'normal', 'text':'Alphabetical'},
@@ -239,57 +241,57 @@ promiseList.push((async () => {
     {'value':'level', 'text':'Level'},
     {'value':'mp_down', 'text':'Magic Points Missing'},
     {'value':'mp_percent', 'text':'Magic Point Percentage'},
-    ];
+  ];
   await mod.registerSetting(
     'select',
     'sortVictim',
     'Enemy Sort',
     'What style of sorting is utilised: alphabetical(default), percentage HP, total HP, level, percentage MP, missing MP.',
     sortOptions,
-    );
+  );
   await mod.registerSetting(
     'checkbox',
     'reverseVictim',
     'Reverse Enemy Sort',
     'Reverses the order of characters when sorted.',
-    );
+  );
   await mod.registerSetting(
     'select',
     'sortFriend',
     'Ally Sort',
     'What style of sorting is utilised: alphabetical(default), percentage HP, total HP, level, percentage MP, missing MP.',
     sortOptions,
-    );
+  );
   await mod.registerSetting(
     'checkbox',
     'reverseFriend',
     'Reverse Ally Sort',
     'Reverses the order of characters when sorted.',
-    );
+  );
   await mod.registerSetting(
     'checkbox',
     'neutrals',
     'Sort Neutrals as Allies',
     'Treat unfactioned and neutral factioned characters as allies in the sorted list',
-    );
+  );
   await mod.registerSetting(
     'checkbox',
     'showhp',
     'Display HP',
     'Prints the HP values after the character\'s name. Requires first-aid.',
-    );
+  );
   await mod.registerSetting(
     'checkbox',
     'showmp',
     'Display Magic Points',
     'Prints how much MP a character is missing. Requires Sense Magic.',
-    );
+  );
   await mod.registerSetting(
     'checkbox',
     'petmaster',
     'Hilight Master\'s Pets',
     'Will hilight all the pets belonging to a master when hovering over their name. Adds a count of pets when you hover over their name.',
-    );
+  );
 
   const createSortChar = async (char, neutralsAlly) => {
     // creates an object of the character's stats from an html string
@@ -306,7 +308,7 @@ promiseList.push((async () => {
       'mp_percent': null,
       'mp_visible': false,
       'html': char,
-      };
+    };
 
     const politics = /a class="(faction|ally|friendly|neutral|enemy|hostile)"/.exec(char);
     if (politics) {
@@ -540,6 +542,7 @@ promiseList.push((async () => {
 
 //#############################################################################
 promiseList.push((async () => {
+  if (!libC.inGame) { return; }
   const mod = await libC.registerModule(
     'safety',
     'Safety Buttons',
@@ -821,6 +824,489 @@ promiseList.push((async () => {
       setDisableButton("//form[@name='skilluse']/input[@type='submit' and starts-with(@value, 'Heal Self')]")
     );
   }
+})());
+
+
+//#############################################################################
+promiseList.push((async () => {
+  if (!libC.inGame) { return; }
+  const mod = await libC.registerModule(
+    'thinbars',
+    'Thin Character Bars',
+    'local',
+    'Full MP or HP bars are made thinner, to take less space and to stand out.',
+    );
+
+  const thinbars = async (mod) => {
+    const healthbarImages = document.evaluate(
+      "//img[@src='images/g/HealthBar_1.gif']",
+      document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null
+    );
+    const manabarImages = document.evaluate(
+      "//img[@src='images/g/MagicBar_1.gif']",
+      document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null
+    );
+    let len = healthbarImages.snapshotLength;
+    for (let i = 0; i < len; i++) {
+      healthbarImages.snapshotItem(i).width = '2';
+    }
+    len = manabarImages.snapshotLength;
+    for (let i = 0; i < len; i++) {
+      manabarImages.snapshotItem(i).width = '2';
+    }
+  }
+
+  await mod.registerMethod(
+    'async',
+    thinbars
+    );
+})());
+
+
+//#############################################################################
+promiseList.push((async () => {
+  const mod = await libC.registerModule(
+    'messagestyle',
+    'Colour Message History',
+    'global',
+    'Adds styling to the message history to improve ease of reading. Includes combat actions, searches, speech, and more. Runs in both in-game and the character profile\'s week log',
+  );
+  
+  const pfx = '^- (?:\(\d+ times\) )?'; // message prefix
+  const globalMatches = [
+    { // fix the a(n) text based on vowels
+      msg: /( a)(\(?(n)\)?( [AEIOUaeiou])|\(?n\)?( [^AEIOUaeiou]))/g,
+      op:'replace', val:'$1$3$4$5'
+    },
+    {
+      msg: /(Your weapon was damaged during the attack\. It is now less effective!)/,
+      op:'replace', val:'<b><u>$1</u></b>'
+    },
+    { //replace '' with ' due to a bug in the game
+      msg: /(\'\')/g, op:'replace', val:"'"
+    },
+    { // speech-style any text
+      msg: /(\".+?\")/g, op: 'replace', val:'<span class="libSpeech">$1</span>'
+    },
+  ]
+  const messageMatches = [
+    {
+      msg: new RegExp(`${pfx}You attack .*? with your .*? and hit for .*? damage\.`),
+      op:'pad', val:'libAttackHit'
+    },
+    {
+      msg: new RegExp(`${pfx}You attack the (door|ward|fortifications) with `),
+      op:'pad', val:'libFort'
+    },
+    {
+      msg: new RegExp(`${pfx}You attack .*? with your .*? and miss\.`),
+      op:'pad', val:'libAttackMiss'
+    },
+    {
+      msg:/You summon (dark forces and attempt to steal.+? You meet with success and drain|the Curse of Blood and touch .+?, inflicting the curse|your inner hatred to inflict the Agony Curse and touch .+?, inflicting the curse)/,
+      op:'pad', val:'libAttackHit'
+    },
+    {
+      msg: new RegExp(`${pfx}.* attacked you with `),
+      op:'pad', val:'libAttacked'
+    },
+    {
+      msg:/( Your action causes you to| You| you|The Agony Curse causes you to) take( an additional)? \d+ (point(s)? of( \b[a-z]+\b)? damage|damage)(\.|!)?/,
+      op:'pad', val:'libAttackedbyEnvironment'
+    },
+    {
+      msg:/Your pet, .*? has been rejuvenated.\s*You spent \d+ Magic Point/,
+      op:'pad', val:'libPetRejuv'
+    },
+    {
+      msg:/ belonging to .*?, (healed you|has funneled life energy)/,
+      op:'pad', val:'libPetHealMe'
+    },
+    {
+      msg:/ belonging to .*?, healed .*? for \d+ hit point/,
+      op:'pad', val:'libPetHealOthers'
+    },
+    {
+      msg:/Your pet .+? attacked .+? and hit for /,
+      op:'pad', val:'libPetHit'
+    },
+    {
+      msg:/((Shambling|Infectious|Rotting) Zombie|.*, belonging to .*,) attacked you and hit for/,
+      op:'pad', val:'libPetHitMe'
+    },
+    {
+      msg:/(Your pet |[^,].*, belonging to).*, killing them!/,
+      op:'pad', val:'libPetKill'
+    },
+    {
+      msg:/(Your pet |[^,].*, belonging to|(Shambling|Infectious|Rotting) Zombie).* and missed/,
+      op:'pad', val:'libPetMiss'
+    },
+    {msg:/attacked your pet,.*?and hit for /, op:'pad', val:'libPetHit'},
+    {msg:/attacked your pet,.* killing it!.*/, op:'pad', val:'libPetKill'},
+    {msg:/attacked .*? killing it!/, op:'pad', val:'libPetKill'},
+    {msg:/attacked your pet.*? and missed/, op:'pad', val:'libPetMiss'},
+    {
+      msg:/, belonging to .*?, was killed by a defensive aura projected by /,
+      op:'pad', val:'libPetKill'
+    },
+    {
+      msg:/(Your pet .*?|.*?, belonging to .*?,|.*?, a .*?) has despawned/,
+      op:'pad', val:'libPetDespawn'
+    },
+    {
+      msg:/(.+?)<font color="#DD0000">(<b>.*<\/b>)<\/font>(.+?)/,
+      op:'replace',
+      val:'<div class="libAchievement">$1<span class="libAchievementColour">$2</span>$3</div>'
+    },
+    {
+      msg: new RegExp(`${pfx}(.+? whispered to you, saying \".+\"|(Someone used a|You use your) bullhorn to say: |You say, \"|You whisper, \"|You emote, \"|.+? said, \".+\"|)`),
+      op:'pad', val:'libEmote'
+    },
+    {
+      msg:/attacked .+? with .+?, killing (him|her|them)/,
+      op:'pad', val:'libKill'
+    },
+    {msg:/gave you a/, op:'pad', val:'libReceiveItem'},
+    {msg:new RegExp(`${pfx}You give your `), op:'pad', val:'libGave'},
+    {msg:/You call upon your crafting skills.*/, op:'pad', val:'libCraft'},
+    {msg:/You search and find nothing.*/, op:'pad', val:'libSearchNothing'},
+    {msg:/You search and find a.*/, op:'pad', val:'libSearchSuccess'},
+    {msg:/You step (inside |outside of )/, op:'pad', val:'libGave'},
+    {
+      msg:/(You heal yourself and|healed you. You) gain \d+ hit point(s)?.*/,
+      op:'pad', val:'libHealed'
+    },
+    {
+      msg:/(heal|healed) you for \d+ point(s)? of damage.*/,
+      op:'pad', val:'libHealed'
+    },
+    {
+      msg:/(You heal|You use the .*? to heal|your surgeon skills to tend to .*?|place a stygian bone leech) .*? for \d+ point(s)? of damage/,
+      op:'pad', val:'libHealed'
+    },
+    {msg:/You feel the effects of .+? fade\./, op:'pad', val:'libFaded'},
+    {msg:/ summoned a /, op:'pad', val:'libSummon'},
+    {
+      msg:/(suddenly appeared out of thin air\.|disappeared from view\.)/,
+      op:'pad', val:'libSummon'
+    },
+    {
+      msg:/spoke words of mystic power and traced eldritch shapes into the air. A burst of warmth rushed through the area as they finished the incantation/,
+      op:'pad', val:'libSummon'
+    },
+    { // placed last as a catch-all for emotes
+      msg:/\".+\"/, op:'pad', val:'libEmote'
+    },
+  ];
+  
+  const singleMatcher = (message, mmObj) => {
+    if (!message.match(mmObj.msg)) { return null; }
+    if (mmObj.op === 'pad') {
+      return `<div class="${mmObj.val}">${message}</div>`;
+    } else if (mmObj.op === 'replace') {
+      return message.replace(mmObj.msg, mmObj.val);
+    } else {
+      mod.error(`Unrecognised message matcher object operation '${mmObj.op}'`);
+    }
+    return null;
+  }
+
+  const singleMessage = async (message) => {
+    let finalStr = message;
+    for (const mmObj of messageMatches) {
+      const matcherResult = singleMatcher(message, mmObj);
+      if (matcherResult) {
+        finalStr = matcherResult;
+        break;
+      }
+    }
+    for (const mmObj of globalMatches) {
+      const matcherResult = singleMatcher(message, mmObj);
+      if (matcherResult) {
+        finalStr = matcherResult;
+      }
+    }
+    return finalStr;
+  }
+
+  const messagehistory = async (mod) => {
+    const messageElement = document.getElementById('Messages');
+    if (!messageElement) { return; }
+    const histSib = messageElement.previousElementSibling;
+    if (histSib && !histSib.innerHTML.match(/This Week/)) {
+      // resize message history box
+      const loc = location + '';
+      if (loc.match(/name=Game(&op=connect)?$/) && timesCharExist(messageElement.innerHTML, '\n') > 13) {
+        messageElement.style.height = '250px';
+      }
+      messageElement.style.resize = 'vertical';
+    }
+    const messages = messageElement.innerHTML.split('\n');
+    const msgPromises = messages.map(singleMessage);
+    await Promise.all(msgPromises);
+    const finalMessages = [];
+    for (const msgPromise of msgPromises) {
+      finalMessages.push(await msgPromise);
+    }
+    messageElement.innerHTML = finalMessages.join('');
+  }
+    
+  await mod.registerMethod(
+    'async',
+    messagehistory
+  );
+})());
+
+
+//#############################################################################
+promiseList.push((async () => {
+  if (!libC.inGame) { return; }
+  const mod = await libC.registerModule(
+    'shortweapon',
+    'Short Weapon Select',
+    'local',
+    'Offers many quick tweaks to the weapon pane, focused around shortening the lengthy attack details in the drop-down menu.',
+  );
+
+  await mod.registerSetting(
+    'checkbox',
+    'damage',
+    'Shorten Damage',
+    'Shortens the damage and accuracy counts in drop-downs.',
+  );
+  await mod.registerSetting(
+    'checkbox',
+    'shots',
+    'Shorten Shots/Ammo',
+    'Shortens the shots remaining (or charges) in drop-downs.',
+  );
+  await mod.registerSetting(
+    'checkbox',
+    'gems',
+    'Shorten Gems/Touch Attacks',
+    'Shortens spellgems and non-damaging attacks such as glyphs/dark heart/blood curse in drop-downs.',
+  );
+  await mod.registerSetting(
+    'checkbox',
+    'enchants',
+    'Shorten Enchants',
+    'Shortens enchanted and magical items in drop-downs.',
+  );
+  await mod.registerSetting(
+    'checkbox',
+    'quality',
+    'Shorten Quality',
+    'Shortens weapon quality levels to the Q5 system.',
+  );
+  
+  // display shorter damage/to-hit chance
+  const shortDamage = async (opt) => {
+    opt.innerHTML = opt.innerHTML.replace(/ - (\d+) dmg.?, (\d+)% to hit/, '-$1/$2%');
+  }
+
+  // display shortened shot amounts
+  const shortShots = async (opt) => {
+    opt.innerHTML = opt.innerHTML.replace(/\((\d+) shots\)/, '\($1s\)');
+  }
+
+  // display shortened spellgem names (and special touch attacks)
+  const shortGems = async (opt) => {
+    opt.innerHTML = opt.innerHTML.replace(/^Spellgem/, 'Gem');
+    opt.innerHTML = opt.innerHTML.replace(/(-( [0-5] dmg| ), -?(\d+)% to hit$)/, '');
+    opt.innerHTML = opt.innerHTML.replace(/(Glyph of )/, '');
+  }
+  
+  // display shortened enchant/magical status
+  const shortEnchant = async (opt) => {
+    opt.innerHTML = opt.innerHTML.replace(/\((magical|enchanted)\)/, '(mag)');
+  }
+
+  // display shortened weapon quality
+  const shortQuality = async (opt) => {
+    const qualityLevels = {
+      'pristine':'+Q5+',
+      'good':'+Q4+',
+      'average':'=Q3=',
+      'worn':'-Q2-',
+      'broken':'-Q1-',
+      'destroyed':'-Q0-',
+    }
+    const qualMatch = opt.innerHTML.match(/ \((pristine|good|average|worn|broken|destroyed)\) /);
+    if (!qualMatch) { return; }
+    opt.innerHTML.replace(/ \((pristine|good|average|worn|broken|destroyed)\) /, qualityLevels[qualMatch[1]]);
+  }
+  
+  const damageEnabled = mod.getSetting('damage', false);
+  const shotsEnabled = mod.getSetting('shots', false);
+  const gemsEnabled = mod.getSetting('gems', false);
+  const enchantsEnabled = mod.getSetting('enchants', false);
+  const qualityEnabled = mod.getSetting('quality', false);
+  
+  const shortenOption = async (optionElement) => {
+    if (damageEnabled) { await shortDamage(optionElement); }
+    if (shotsEnabled) { await shortShots(optionElement); }
+    if (gemsEnabled) { await shortGems(optionElement); }
+    if (enchantsEnabled) { await shortEnchant(optionElement); }
+    if (qualityEnabled) { await shortQuality(optionElement); }
+  }
+  
+  const singleSelect = async (selectElement) => {
+    const optElements = selectElement.getElementsByTagName('option');
+    const shortOptPromises = optElements.map(shortenOption);
+    await Promise.all(shortOptPromises)
+  }
+  
+  const shortWeaponSelects = async (mod) => {
+    const weaponSelects = document.evaluate(
+      "//select[@name='attacking_with_item_id']",
+      document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null
+    );
+    const len = weaponSelects.snapshotLength;
+    if (len === 0) { return; }
+    for (let i = 0; i < len; i++) {
+      singleSelect(weaponSelects.snapshotItem(i));
+    }
+  }
+    
+  await mod.registerMethod(
+    'async',
+    shortWeaponSelects
+  );
+})());
+
+
+//#############################################################################
+promiseList.push((async () => {
+  if (!libC.inGame) { return; }
+  const mod = await libC.registerModule(
+    'pickup',
+    'Default Pick-Up Items',
+    'local',
+    'Defaults to items such as hatchets or bottles/potions for picking up items from the floor. Mandatory for mundane throwing classes.',
+  );
+
+  const pickUpOpts = [
+    {value:'null', text:'None'},
+    {value:'hatchet', text:'Hatchet'},
+    {value:'misc', text:'Unknown/Misc.'},
+    {value:'drink', text:'Bottle/Potion'},
+    {value:'food', text:'Cans/Food'},
+    {value:'knife', text:'Throwing Knife'},
+    {value:'rock', text:'Rock'},
+  ];
+  await mod.registerSetting(
+    'select',
+    'priority1',
+    'Highest Priority',
+    'Always selects these items for pickup. Suggested either Hatchet or Misc.',
+    pickUpOpts,
+  );
+  await mod.registerSetting(
+    'select',
+    'priority2',
+    'High Priority',
+    'Selects these items for pick-up if there are no higher priority items on the floor.',
+    pickUpOpts,
+  );
+  await mod.registerSetting(
+    'select',
+    'priority3',
+    'Normal Priority',
+    'Selects these items for pick-up if there are no higher priority items on the floor.',
+    pickUpOpts,
+  );
+  await mod.registerSetting(
+    'select',
+    'priority4',
+    'Low Priority',
+    'Selects these items for pick-up if there are no higher priority items on the floor.',
+    pickUpOpts,
+  );
+  await mod.registerSetting(
+    'select',
+    'priority5',
+    'Lower Priority',
+    'Selects these items for pick-up if there are no higher priority items on the floor.',
+    pickUpOpts,
+  );
+  await mod.registerSetting(
+    'select',
+    'priority6',
+    'Lowest Priority',
+    'Only selects these items for pick-up if there are no other items on the floor.',
+    pickUpOpts,
+  );
+  
+  const drinkMatch = /(.+, a(n)? )?(Bottle of .+|Absinthe|Vial of .+)/;
+  const foodMatch = /(.+, a(n)? )?(Can of .+|Cup of .+|Apple)/;
+  const rockMatch = /(.+, a(n)? )?Rock/;
+  const knifeMatch = /(.+, a(n)? )?Throwing Knife/;
+  const hatchetMatch = /(.+, a(n)? )?Hatchet/;
+  const validMatchers = ['drink', 'food', 'rock', 'knife', 'hatchet', 'misc', null];
+  const priorities = []; // list of objects {matchType:'misc', index:option index}
+  
+  // currently there are six priority levels
+  for (let i = 1; i <= 6; i++) {
+    // ensures valid settings, and construct list of highest to lowest priorities
+    let tempVal = await mod.getSetting(`priority${i}`, null);
+    if (validMatchers.indexOf(tempVal) === -1) {
+      tempVal = null;
+    }
+    await mod.setSetting(`priority${i}`, tempVal);
+    if (tempVal !== null) {
+      priorities.push({matchType: tempVal, index:-1});
+    }
+  }
+  
+  const getOptionType = async (opt) => {
+    const txt = opt.textContent;
+    let type = 'misc';
+    if (txt.match(drinkMatch)) { type = 'drink'; }
+    else if (txt.match(foodMatch)) { type = 'food'; }
+    else if (txt.match(rockMatch)) { type = 'rock'; }
+    else if (txt.match(knifeMatch)) { type = 'knife'; }
+    else if (txt.match(hatchetMatch)) { type = 'hatchet'; }
+    return {matchType: type, index: opt.index};
+  }
+  
+  const singleForm = async (form) => {
+    const select = form.lastElementChild;
+    const opts = select.getElementsByTagName('option');
+    const optPromises = opts.map(getOptionType);
+    await Promise.all(optPromises);
+    for (const prom of optPromises) {
+      const matchObj = await prom;
+      for (const priorityObj of priorities) {
+        if (priorityObj.index === -1 && matchObj.matchType === priorityObj.matchType) {
+          priorityObj.index = matchObj.index
+        }
+      }
+    }
+    for (const priorityObj of priorities) {
+      if (priorityObj.index !== -1) {
+        select.selectedIndex = priorityObj.index;
+        break;
+      }
+    }
+  }
+
+  const defaultPickups = async (mod) => {
+    const puForms = document.evaluate(
+      "//form[@name='pickup']",
+      document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null
+    );
+    let len = puForms.snapshotLength;
+    if (len === 0) { return; }
+    for (let i = 0; i < len; i++) {
+      singleForm(puForms.snapshotItem(i));
+    }
+  }
+
+  await mod.registerMethod(
+    'async',
+    defaultPickups
+  );
 })());
 
 
