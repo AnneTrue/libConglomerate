@@ -88,9 +88,7 @@ td.match-inventory { background-color: #88ccee; }
 .libAchievement { font-size: smaller; padding-left: 4em; }
 .libAchievementColour { color: #aa0000; }
 .libSpeech { color: dodgerblue; }
-.libAction { color: #aaaaff; }
-.libWhisper{ color: MediumOrchid; }
-.libMe{ color: darkblue; }
+.libEmote{ color: darkblue; }
 .libReceiveItem{ color: #ff8040; }
 .libCraft{ color: #8d4f9d; }
 .libSearchNothing{ color: #8c8c55; }
