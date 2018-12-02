@@ -322,14 +322,14 @@ promiseList.push((async () => {
     } else {
       mod.error(`Failed to parse char politics. Char HTML: ${char}`);
     }
-    
+
     const charId = /href="javascript:SelectItem\('target_id','(\d+)'\)">/.exec(char)
     if (charId) {
       retChar.id = charId[1];
     } else {
       mod.error(`Failed to parse char ID. Char HTML: ${char}`);
     }
-    
+
     // character link (level, and alternate ID)
     const charLink = /\(<a href="modules.php\?name=Game&amp;op=character&amp;id=(\d+)">(\d*)<\/a>\)/.exec(char)
     if (charLink) {
@@ -380,7 +380,7 @@ promiseList.push((async () => {
 
     return retChar;
   }
-  
+
   // helper for ensuring valid sort
   const getSortSingle = (sortStr) => {
     const sorts = [
@@ -398,14 +398,14 @@ promiseList.push((async () => {
     }
     return sortStr
   }
-  
+
   // helper for ensuring defaults in settings
   const ensureSortSetting = async (name) => {
     const sort = getSortSingle(await mod.getSetting(name));
     await mod.setSetting(name, sort);
     return sort;
   }
-  
+
   const sortVictim = await ensureSortSetting('sortVictim');
   const sortFriend = await ensureSortSetting('sortFriend');
   const reverseVictim = await mod.getSetting('reverseVictim');
@@ -447,7 +447,7 @@ promiseList.push((async () => {
     }
     return `<p id="${id}">${singleChars.join(', ')}.</p>`;
   }
-  
+
   const sortChars = async (mod) => {
     const tileDescList = document.getElementsByClassName('tile_description');
     if (tileDescList.length !== 1) { return; }
@@ -474,7 +474,7 @@ promiseList.push((async () => {
       );
 
     await Promise.all(createCharsPromises);
-    
+
     // sort people here
     if ( sortField.hasOwnProperty(sortVictim) ) {
      charLists.victims.sort(getSortByProperty(sortField[sortVictim], reverseVictim));
@@ -494,16 +494,16 @@ promiseList.push((async () => {
     const friendText = await createCharsHTML(charLists.friends, 'friends');
     const divText = `<div id="other_chars">${countText}${victimText}${friendText}</div>`;
     tileDescNode.innerHTML = tileDescNode.innerHTML.replace(peopleMatch[0], divText);
-        
+
     // remove extra whitespace:
     removeNextBreaks(document.getElementById('other_chars'), 2);
   }
-  
+
   await mod.registerMethod('sync', sortChars);
 
 
   const showPetmaster = await mod.getSetting('petmaster');
-  
+
   const getHilightEvent= (stateColour) => {
     const highlightpet = async (e) => {
       const masterName = e.target.textContent.trimEnd();
@@ -519,7 +519,7 @@ promiseList.push((async () => {
       }
     }
   }
-  
+
   const petmaster = async () => {
     if (showPetmaster !== true) { return; }
     // selects the character name element
@@ -535,7 +535,7 @@ promiseList.push((async () => {
       oneChar.addEventListener('mouseover', getHilightEvent(''));
     }
   }
-  
+
   await mod.registerMethod('sync', petmaster);
 })());
 
@@ -626,7 +626,7 @@ promiseList.push((async () => {
       targetbutton.style.visibility = 'hidden';
     }
   }
-  
+
   const setHiddenButton = (path, regex=null, replaceVal=null) => {
     return async (mod) => {
       const buttons = document.evaluate(path, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -650,7 +650,7 @@ promiseList.push((async () => {
       }
     }
   }
-  
+
   // checkbox toggles enabled/disabled button
   const disabletoggle = (e) => {
     const targetbutton = e.target.nextElementSibling;
@@ -660,7 +660,7 @@ promiseList.push((async () => {
       targetbutton.disabled = true;
     }
   }
-  
+
   const setDisableButton = (path, regex=null, replaceVal=null) => {
     return async (mod) => {
       const buttons = document.evaluate(path, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -688,7 +688,7 @@ promiseList.push((async () => {
     mod.debug(`Double click on ${e.target.nextElementSibling}`);
     e.target.nextElementSibling.click();
   }
-  
+
   const setDoubleClickButton = (path, regex=null, replaceVal=null) => {
     return async (mod) => {
       const buttons = document.evaluate(path, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -741,7 +741,7 @@ promiseList.push((async () => {
       }
     }
   }
-  
+
   if (await mod.getSetting('speech') === true) {
     await mod.registerMethod(
       'async',
@@ -871,11 +871,11 @@ promiseList.push((async () => {
     'global',
     'Adds styling to the message history to improve ease of reading. Includes combat actions, searches, speech, and more. Runs in both in-game and the character profile\'s week log',
   );
-  
+
   const pfx = '^- (?:\(\d+ times\) )?'; // message prefix
   const globalMatches = [
     { // fix the a(n) text based on vowels
-      msg: /( a)(\(?(n)\)?( [AEIOUaeiou])|\(?n\)?( [^AEIOUaeiou]))/g,
+      msg: /( a)(\((n)\)( [AEIOUaeiou])|\(n\)( [^AEIOUaeiou]))/g,
       op:'replace', val:'$1$3$4$5'
     },
     {
@@ -884,9 +884,6 @@ promiseList.push((async () => {
     },
     { //replace '' with ' due to a bug in the game
       msg: /(\'\')/g, op:'replace', val:"'"
-    },
-    { // speech-style any text
-      msg: /(\".+?\")/g, op: 'replace', val:'<span class="libSpeech">$1</span>'
     },
   ]
   const messageMatches = [
@@ -955,13 +952,9 @@ promiseList.push((async () => {
       op:'pad', val:'libPetDespawn'
     },
     {
-      msg:/(.+?)<font color="#DD0000">(<b>.*<\/b>)<\/font>(.+?)/,
+      msg:/(.+?)<font color="#DD0000">(<b>.*<\/b>)<\/font>(.+)/,
       op:'replace',
       val:'<div class="libAchievement">$1<span class="libAchievementColour">$2</span>$3</div>'
-    },
-    {
-      msg: new RegExp(`${pfx}(.+? whispered to you, saying \".+\"|(Someone used a|You use your) bullhorn to say: |You say, \"|You whisper, \"|You emote, \"|.+? said, \".+\"|)`),
-      op:'pad', val:'libEmote'
     },
     {
       msg:/attacked .+? with .+?, killing (him|her|them)/,
@@ -995,11 +988,22 @@ promiseList.push((async () => {
       msg:/spoke words of mystic power and traced eldritch shapes into the air. A burst of warmth rushed through the area as they finished the incantation/,
       op:'pad', val:'libSummon'
     },
-    { // placed last as a catch-all for emotes
-      msg:/\".+\"/, op:'pad', val:'libEmote'
+    {
+      msg: new RegExp(`(${pfx}You (?:say|whisper|emote), )(\".+)`),
+      op: 'replace',
+      val:'<div class="libSpeech"><span class="libEmote">$1</span>$3</div>'
+    },
+    {
+      msg: new RegExp(`${pfx}((Someone used a|You use your) bullhorn to say: ')`),
+      op:'pad', val:'libEmote'
+    },
+    { // broad catch-all emote
+      msg: new RegExp(`(${pfx}<a .+?</a> .+?)(".+")(.+)`),
+      op: 'replace',
+      val:'<div class="libSpeech"><span class="libEmote">$1</span>$3<span class="libEmote">$4</span></div>'
     },
   ];
-  
+
   const singleMatcher = (message, mmObj) => {
     if (!message.match(mmObj.msg)) { return null; }
     if (mmObj.op === 'pad') {
@@ -1051,7 +1055,7 @@ promiseList.push((async () => {
     }
     messageElement.innerHTML = finalMessages.join('');
   }
-    
+
   await mod.registerMethod(
     'async',
     messagehistory
@@ -1099,7 +1103,7 @@ promiseList.push((async () => {
     'Shorten Quality',
     'Shortens weapon quality levels to the Q5 system.',
   );
-  
+
   // display shorter damage/to-hit chance
   const shortDamage = async (opt) => {
     opt.innerHTML = opt.innerHTML.replace(/ - (\d+) dmg.?, (\d+)% to hit/, '-$1/$2%');
@@ -1116,7 +1120,7 @@ promiseList.push((async () => {
     opt.innerHTML = opt.innerHTML.replace(/(-( [0-5] dmg| ), -?(\d+)% to hit$)/, '');
     opt.innerHTML = opt.innerHTML.replace(/(Glyph of )/, '');
   }
-  
+
   // display shortened enchant/magical status
   const shortEnchant = async (opt) => {
     opt.innerHTML = opt.innerHTML.replace(/\((magical|enchanted)\)/, '(mag)');
@@ -1136,13 +1140,13 @@ promiseList.push((async () => {
     if (!qualMatch) { return; }
     opt.innerHTML.replace(/ \((pristine|good|average|worn|broken|destroyed)\) /, qualityLevels[qualMatch[1]]);
   }
-  
+
   const damageEnabled = mod.getSetting('damage', false);
   const shotsEnabled = mod.getSetting('shots', false);
   const gemsEnabled = mod.getSetting('gems', false);
   const enchantsEnabled = mod.getSetting('enchants', false);
   const qualityEnabled = mod.getSetting('quality', false);
-  
+
   const shortenOption = async (optionElement) => {
     if (damageEnabled) { await shortDamage(optionElement); }
     if (shotsEnabled) { await shortShots(optionElement); }
@@ -1150,13 +1154,14 @@ promiseList.push((async () => {
     if (enchantsEnabled) { await shortEnchant(optionElement); }
     if (qualityEnabled) { await shortQuality(optionElement); }
   }
-  
+
   const singleSelect = async (selectElement) => {
     const optElements = selectElement.getElementsByTagName('option');
-    const shortOptPromises = optElements.map(shortenOption);
+    if (optElements.length === 0) { return; }
+    const shortOptPromises = Array.prototype.map.call(optElements, shortenOption);
     await Promise.all(shortOptPromises)
   }
-  
+
   const shortWeaponSelects = async (mod) => {
     const weaponSelects = document.evaluate(
       "//select[@name='attacking_with_item_id']",
@@ -1168,7 +1173,7 @@ promiseList.push((async () => {
       singleSelect(weaponSelects.snapshotItem(i));
     }
   }
-    
+
   await mod.registerMethod(
     'async',
     shortWeaponSelects
@@ -1237,7 +1242,7 @@ promiseList.push((async () => {
     'Only selects these items for pick-up if there are no other items on the floor.',
     pickUpOpts,
   );
-  
+
   const drinkMatch = /(.+, a(n)? )?(Bottle of .+|Absinthe|Vial of .+)/;
   const foodMatch = /(.+, a(n)? )?(Can of .+|Cup of .+|Apple)/;
   const rockMatch = /(.+, a(n)? )?Rock/;
@@ -1245,7 +1250,7 @@ promiseList.push((async () => {
   const hatchetMatch = /(.+, a(n)? )?Hatchet/;
   const validMatchers = ['drink', 'food', 'rock', 'knife', 'hatchet', 'misc', null];
   const priorities = []; // list of objects {matchType:'misc', index:option index}
-  
+
   // currently there are six priority levels
   for (let i = 1; i <= 6; i++) {
     // ensures valid settings, and construct list of highest to lowest priorities
@@ -1258,7 +1263,7 @@ promiseList.push((async () => {
       priorities.push({matchType: tempVal, index:-1});
     }
   }
-  
+
   const getOptionType = async (opt) => {
     const txt = opt.textContent;
     let type = 'misc';
@@ -1269,7 +1274,7 @@ promiseList.push((async () => {
     else if (txt.match(hatchetMatch)) { type = 'hatchet'; }
     return {matchType: type, index: opt.index};
   }
-  
+
   const singleForm = async (form) => {
     const select = form.lastElementChild;
     const opts = select.getElementsByTagName('option');
