@@ -4,12 +4,12 @@ Assorted userscripts for NexusClash, along with a per-character, per-browser set
 The largest two features are the inventory and the alchemy modules, which vastly improve upon the static Nexus Clash UI.
 
 
-## Version 3.1
+## Version 4.0
 ### Complete Feature List:
 * Toggled Settings 
   * Found in the 'Pad' panel in the multi-function pane, below the character's note pad. 
   * Each setting is stored on a per-character basis. You will have to log in to each character and select which options they want to run. 
-  * Settings are stored in local cache. They will therefore be specific to the computer you run them from, and if you clear your cache will lose the stored settings. 
+  * Settings are stored in local cache. They will therefore be specific to the computer you run them from. If you clear your cache you will lose the stored settings. 
   * The left setting column is the module. Check it to have it run on page loads, uncheck to disable. 
   * The right setting column is the options for a module. If the module runs, then it uses defaults or the settings stored in the right column. Some modules have no options, and some modules do nothing unless an option is selected. 
   * Hovering over a checkbox, list, or field will show a caption explaining the feature. 
@@ -22,7 +22,7 @@ The largest two features are the inventory and the alchemy modules, which vastly
   * If you log in or reload the map and there are more than 10 messages in the pane, it will resize the message pane. 
   * If your weapon is damaged during an attack, it will emphasise that message. 
   * Double ticks ('') are turned into apostrophes (') due to a bug that occasionally appears in-game. 
-  * Messages that are stylised: Attacking a player/pet; darkhearting/cursing a player; Attacking wards, forts, or doors; taking damage (agony curse/defiler poison, etc.); pet attacks, being attacked, rejuves, despawning, death by aura, being summoned; global achievement announces; whispers, speech, emotes featuring at least two quotes ("), bullhorns sometimes; characters attacking/killing others; giving/being given items; crafting; finding an item, or nothing; stepping inside/outside; healing or being healed; losing a status effect; characters becoming visible/invisible; characters casting a glyph. 
+  * Messages that are stylised: Attacking a player/pet; darkhearting/cursing a player; Attacking wards, forts, or doors; taking damage (agony curse/defiler poison, etc.); pet attacks, being attacked, rejuves, despawning, death by aura, being summoned; global achievement announces; whispers, speech, emotes featuring at least two quotes ("), bullhorns; characters attacking/killing others; giving/being given items; crafting; finding an item, or nothing; stepping inside/outside; healing or being healed; losing a status effect; characters becoming visible/invisible; characters casting a glyph. 
 
 * Description Highlights 
   * Does nothing unless an option is selected. 
@@ -32,12 +32,12 @@ The largest two features are the inventory and the alchemy modules, which vastly
 
 * Sort Characters 
   * Sorts visible characters into two groups, 'Allies' and 'Enemies' depending on faction politics. 
-  * Neutral characters default to 'Enemies.' 
+  * Neutral politic characters default to 'Enemies.' 
   * Enemy Sort and Ally Sort can be by HP Percentage, Alphabetical (Nexus Clash default), HP Total, HP Total Missing, Levels, Magic Points Missing, Magic Points Percentage. HP Total (and Missing) requires the First Aid skill to work properly. HP Percentage does not require first aid, but benefits from it (gains accuracy). Magic Point sorts require the Sense Magic skill. 
   * Reverse Enemy/Ally Sort simply flips the order they appear in. If you use HP (Or MP) Total Missing, you probably want to enable this to list the most hurt first.
   * Display HP requires the First Aid skill. It prints the current HP and the amount of HP missing from the character next to their name. Full HP uses black text, missing HP uses pink. Format is '+HP-missing' 
   * Display Magic Points requires the Sense Magic skill. It prints the amount of MP missing from a character, next to their name. The colour is dark blue, and is formatted as 'm##' after the character's name.
-  * Sort Neutrals as Allies places unfactioned characters (and neutral politics factioned characters) into the allies group. 
+  * Sort Neutrals as Allies places unfactioned characters (and neutral politics factioned characters) into the allies group. They are still displayed with their grey coloured name.
   * Hilight Master's Pets will turn all the pets a character owns blue when you hover over their name. It will also add a hovertext with the total tally of pets that a character has. 
 
 * Safety Buttons 
@@ -47,7 +47,7 @@ The largest two features are the inventory and the alchemy modules, which vastly
   * Safe Repair Button adds a safety to repairing items. 
   * Safe Learn Buttons adds safeties to learn spellgems, and shortens the learn button. 
   * Safe Speech Buttons disables bullhorn and speech buttons until you enter text into the fields. Prevents you from accidentally sending empty emotes. 
-  * Safe Load Spellwand is for wizards: creates a double-click button for loading spellwands. The button reads 'Load?' and once clicked will be enabled and read 'Load'. Clicking again loads your spellwand. 
+  * Safe Load Spellwand is for wizards: creates a double-click button for loading spellwands. The button reads 'Load?' and must be double clicked to load the spellwand.
   * Safe Blessing is for Advocates: adds a disable safety to the blessing skill.
   * Safe Wisp is for Conduits: adds a safety to prevent deactivating wisp form by accident.
   * Safe Well is for Conduits: adds a safety to creating Arcane Wells.
@@ -60,9 +60,8 @@ The largest two features are the inventory and the alchemy modules, which vastly
 
 * Weaponpane Tweak 
   * Does nothing unless options are selected. Is designed to remove the clutter from attack drop-downs so that they are smaller and more concise. 
-  * Print DPA adds a raw damage per action estimate to the attack. Not recommended to enable due to its inaccuracy. 
-  * Shorten Damage changes the damage and accuracy to be concise. Format dmg/acc% 
-  * Shorten Shots changes shots in ammo-consuming weapons and spellgems to be short. Format #s 
+  * Shorten Damage changes the damage and accuracy to be concise. Format: dmg/acc% 
+  * Shorten Shots changes shots in ammo-consuming weapons and spellgems to be short. Format: #s 
   * Shorten Spellgems shortens drop-down options to read 'Gem' and removes 'Glyph of' text. Also replaces broken damage/accuracy displays for attacks that do not have them. Recommended if you have dark heart/non-damaging attacks or any spells. 
   * Shorten Quality changes quality to the Q5 system. Format: +Q5+ is pristine. +Q4+ is good. =Q3= is average. -Q2- -Q1- -Q0- are below average to destroyed. 
   * Shorten Enchant replaces (magical) and (enchanted) text with the shorter (mag) tag. 
