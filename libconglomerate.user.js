@@ -872,7 +872,7 @@ promiseList.push((async () => {
     'Adds styling to the message history to improve ease of reading. Includes combat actions, searches, speech, and more. Runs in both in-game and the character profile\'s week log',
   );
 
-  const pfx = '^- (?:\(\d+ times\) )?'; // message prefix
+  const pfx = '^- (?:\\(\\d+ times\\) )?'; // message prefix
   const globalMatches = [
     { // fix the a(n) text based on vowels
       msg: /( a)(\((n)\)( [AEIOUaeiou])|\(n\)( [^AEIOUaeiou]))/g,
@@ -904,7 +904,7 @@ promiseList.push((async () => {
       op:'pad', val:'libAttackHit'
     },
     {
-      msg: new RegExp(`${pfx}.* attacked you with `),
+      msg: new RegExp(`${pfx}.*? attacked you with `),
       op:'pad', val:'libAttacked'
     },
     {
@@ -960,7 +960,7 @@ promiseList.push((async () => {
       msg:/attacked .+? with .+?, killing (him|her|them)/,
       op:'pad', val:'libKill'
     },
-    {msg:/gave you a/, op:'pad', val:'libReceiveItem'},
+    {msg:new RegExp(`${pfx}<a .+?</a> gave you a`), op:'pad', val:'libReceiveItem'},
     {msg:new RegExp(`${pfx}You give your `), op:'pad', val:'libGave'},
     {msg:/You call upon your crafting skills.*/, op:'pad', val:'libCraft'},
     {msg:/You search and find nothing.*/, op:'pad', val:'libSearchNothing'},
@@ -979,7 +979,10 @@ promiseList.push((async () => {
       op:'pad', val:'libHealed'
     },
     {msg:/You feel the effects of .+? fade\./, op:'pad', val:'libFaded'},
-    {msg:/ summoned a /, op:'pad', val:'libSummon'},
+    {
+      msg: new RegExp(`${pfx}<a [^<>]+?>[^<>]+</a> summoned a`),
+      op:'pad', val:'libSummon'
+    },
     {
       msg:/(suddenly appeared out of thin air\.|disappeared from view\.)/,
       op:'pad', val:'libSummon'
@@ -991,16 +994,16 @@ promiseList.push((async () => {
     {
       msg: new RegExp(`(${pfx}You (?:say|whisper|emote), )(\".+)`),
       op: 'replace',
-      val:'<div class="libSpeech"><span class="libEmote">$1</span>$3</div>'
+      val:'<div class="libSpeech"><span class="libEmote">$1</span>$2</div>'
     },
     {
       msg: new RegExp(`${pfx}((Someone used a|You use your) bullhorn to say: ')`),
       op:'pad', val:'libEmote'
     },
     { // broad catch-all emote
-      msg: new RegExp(`(${pfx}<a .+?</a> .+?)(".+")(.+)`),
+      msg: new RegExp(`(${pfx}<a [^<>]+>[^<>]+</a> [^<>]+?)(".+")(.+)`),
       op: 'replace',
-      val:'<div class="libSpeech"><span class="libEmote">$1</span>$3<span class="libEmote">$4</span></div>'
+      val:'<div class="libSpeech"><span class="libEmote">$1</span>$2<span class="libEmote">$3</span></div>'
     },
   ];
 
@@ -1019,14 +1022,14 @@ promiseList.push((async () => {
   const singleMessage = async (message) => {
     let finalStr = message;
     for (const mmObj of messageMatches) {
-      const matcherResult = singleMatcher(message, mmObj);
+      const matcherResult = singleMatcher(finalStr, mmObj);
       if (matcherResult) {
         finalStr = matcherResult;
         break;
       }
     }
     for (const mmObj of globalMatches) {
-      const matcherResult = singleMatcher(message, mmObj);
+      const matcherResult = singleMatcher(finalStr, mmObj);
       if (matcherResult) {
         finalStr = matcherResult;
       }
