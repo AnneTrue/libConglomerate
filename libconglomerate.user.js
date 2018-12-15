@@ -92,7 +92,7 @@ function removeNextBreaks(element, removeCount=1) {
 }
 
 
-async function ensureIntegerSetting(mod, key, default) {
+async function ensureIntegerSetting(mod, key, def) {
   const originalSetting = await mod.getSetting(key, null);
   if (isNormalInteger(originalSetting)) {
     const parsedSetting = parseInt(originalSetting);
@@ -101,8 +101,8 @@ async function ensureIntegerSetting(mod, key, default) {
     }
     return parsedSetting;
   } else {
-    await mod.setSetting(key, default);
-    return default;
+    await mod.setSetting(key, def);
+    return def;
   }
 }
 
@@ -1587,12 +1587,12 @@ promiseList.push((async () => {
       'mp': null,
       'hp': null,
       'stance': null,
-      'stanceSelect', null,
-      'stanceSubmit', null,
+      'stanceSelect': null,
+      'stanceSubmit': null,
     }
 
     const rename = document.evaluate(
-      '/td[starts-with(@title, "Rename")]/form/input[@type="text" and @name="pet_name"]',
+      'td[starts-with(@title, "Rename")]/form/input[@type="text" and @name="pet_name"]',
       row, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null
     );
     if (rename.snapshotLength === 1) {
@@ -1602,16 +1602,20 @@ promiseList.push((async () => {
       if (petTypeMatch) {
         rowObj.petType = petTypeMatch[1];
       } else {
-        rowObj.petType = field.value;
+        rowObj.petType = rowObj.name;
       }
+    } else {
+      mod.error(`Unable to parse pet name: "${rowObj.row.innerHTML}"`);
     }
 
     const rejuve = document.evaluate(
-      '/td[starts-with(@title, "Rejuvenate")]/form/input[@type="submit"]',
+      'td[starts-with(@title, "Rejuvenate")]/form/input[@type="submit"]',
       row, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null
     );
     if (rejuve.snapshotLength === 1) {
       rowObj.rejuveCost = parseInt(rejuve.snapshotItem(0).value);
+    } else {
+      mod.error(`Unable to parse pet rejuve: "${rowObj.row.innerHTML}"`);
     }
 
     try {
@@ -1623,19 +1627,23 @@ promiseList.push((async () => {
     }
 
     const stanceSubmit = document.evaluate(
-      '/td/form[@name="pet_stance"]/input[@type="submit"]',
+      'td/form[@name="pet_stance"]/input[@type="submit"]',
       row, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null
     );
     if (stanceSubmit.snapshotLength === 1) {
       rowObj.stanceSubmit = stanceSubmit.snapshotItem(0);
+    } else {
+      mod.error(`Unable to find stance submit: "${rowObj.row.innerHTML}"`);
     }
     const stanceSelect = document.evaluate(
-      '/td/form[@name="pet_stance"]/select[@name="stance"]',
+      'td/form[@name="pet_stance"]/select[@name="stance"]',
       row, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null
     );
     if (stanceSelect.snapshotLength === 1) {
       rowObj.stanceSelect = stanceSelect.snapshotItem(0);
-      rowObj.stance = stanceSelect.options[stanceSelect.selectedIndex].value;
+      rowObj.stance = rowObj.stanceSelect.options[rowObj.stanceSelect.selectedIndex].value;
+    } else {
+      mod.error(`Unable to find stance select: "${rowObj.row.innerHTML}"`);
     }
     return rowObj;
   }
@@ -1674,6 +1682,8 @@ promiseList.push((async () => {
   }
 
   const setStanceForm = async (rowObj) => {
+    if (rowObj.stanceSelect === null || rowObj.stanceSubmit === null) { return; }
+    rowObj.stanceSubmit.style.display = 'none';
     rowObj.stanceSelect.onchange = function() { this.form.submit(); };
   }
 
@@ -1687,7 +1697,6 @@ promiseList.push((async () => {
   }
 
   const modifyPetTable = async (table) => {
-    const table = rowObj.row.parentNode.parentNode;
     table.style.width = table.offsetWidth - 4;
     table.rows[1].insertCell(7);
     table.rows[1].cells[7].innerHTML = 'Decay';
@@ -1706,28 +1715,28 @@ promiseList.push((async () => {
       mod.debug('No pet table detected');
       return;
     }
-    await modifyPetTable(table);
+    await modifyPetTable(table.snapshotItem(0));
     // parse rows
     const petRows = document.evaluate(
       "//tr[td[@title='Rename Pet']]",
-      table, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null
+      table.snapshotItem(0), null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null
     );
     const parseRowPromises = [];
     const len = petRows.snapshotLength;
     for (let i = 0; i < len; i++) {
       parseRowPromises.push(parsePetRow(petRows.snapshotItem(i)));
     }
-    const petRows = [];
+    const petRowObjs = [];
     for (const rowPromise of parseRowPromises) {
-      petRows.push(await rowPromise);
+      petRowObjs.push(await rowPromise);
     }
     // sort and modify rows
-    petRows.sort(getSortByProperty('ap', false));
+    petRowObjs.sort(getSortByProperty('ap', false));
     const modRowFunc = async (rowObj) => {
-      const minPetIdx = petRows.indexOf(rowObj);
+      const minPetIdx = petRowObjs.indexOf(rowObj);
       await modifyRow(rowObj, tick, surplusEnabled, apCritical, apLow, minPetIdx);
     }
-    const modifyRowPromises = petRows.map(modRowFunc);
+    const modifyRowPromises = petRowObjs.map(modRowFunc);
     await Promise.all(modifyRowPromises);
   }
 
