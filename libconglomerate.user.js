@@ -1473,8 +1473,8 @@ promiseList.push((async () => {
   const rememberForm = async (key, path, selectName) => {
     const selectElements = document.evaluate(path, document, null,
       XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-    const len = selectElements.length;
-    const val = mod.getSetting(key, null);
+    const len = selectElements.snapshotLength;
+    const val = await mod.getSetting(key, null);
     for (let i = 0; i < len; i++) {
       const sel = selectElements.snapshotItem(i);
       const button = document.evaluate("input[@type='submit']", sel.parentNode,
