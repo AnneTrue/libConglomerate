@@ -1318,6 +1318,227 @@ promiseList.push((async () => {
 })());
 
 
+//#############################################################################
+promiseList.push((async () => {
+  if (!libC.inGame) { return; }
+  const mod = await libC.registerModule(
+    'warnheaders',
+    'Warning Headers',
+    'local',
+    'Changes the pane headers to warning colours when low AP or low HP',
+  );
+
+  await mod.registerSetting(
+    'textfield',
+    'ap',
+    'Low AP Threshold',
+    'Displays warning headers when AP is less than this.',
+  );
+  await mod.registerSetting(
+    'textfield',
+    'hp',
+    'Low HP Threshold',
+    'Displays warning headers when HP is less than this.',
+  );
+  await mod.registerSetting(
+    'checkbox',
+    'move',
+    'Warning Move Buttons',
+    'Changes the borders of move buttons to be black dashed warnings when your character is at risk.',
+  );
+
+  const ensureSettings = async (mod) => {
+    // ensures that the settings are integer values, or else sets them to default vals
+    const originalHP = await mod.getSetting('hp', 30);
+    const originalAP = await mod.getSetting('ap', 13);
+    if (!isNormalInteger(originalHP)) {
+      await mod.setSetting('hp', 30);
+    } else {
+      await mod.setSetting('hp', parseInt(originalHP));
+    }
+    if (!isNormalInteger(originalAP)) {
+      await mod.setSetting('ap', 13);
+    } else {
+      await mod.setSetting('ap', parseInt(originalAP));
+    }
+  }
+
+  const warnheaders = async (mod) => {
+    await ensureSettings(mod);
+    const lowHP = mod.getSetting('hp');
+    const lowAP = mod.getSetting('ap');
+    let headerColour = '';
+    let headerTitle = '';
+    if (libC.charinfo.hp < lowHP) {
+      headerColour = 'crimson';
+      headertitle = 'LOW HP';
+    } else if (libC.charinfo.ap < lowAP) {
+      headerColour = 'gold';
+      headerTitle = 'LOW AP';
+    } else {
+      return;
+    }
+    // headings between game sections (e.g. description pane, attack pane, etc.)
+    const paneTitles = document.getElementsByClassName('panetitle');
+    let len = paneTitles.length;
+    for (let i = 0; i < len; i++) {
+      paneTitles[i].style.color = headerColour;
+      paneTitles[i].style.title = headerTitle;
+    }
+    // move buttons
+    if (headertitle && mod.getSetting('move', true) === true) {
+      const moves = document.getElementsByName('move');
+      len = moves.length;
+      for (let i = 0; i < len; i++) {
+        moves[i].children[1].style.borderColor = 'black';
+        moves[i].children[1].style.borderStyle = 'dotted';
+      }
+    }
+  }
+
+  await mod.registerMethod(
+    'async',
+    warnheaders
+  );
+})());
+
+
+//#############################################################################
+promiseList.push((async () => {
+  if (!libC.inGame) { return; }
+  const mod = await libC.registerModule(
+    'saveforms',
+    'Save Forms',
+    'local',
+    'Saves the charged attack(s) or any other drop-downs that you use, so that you don\'t have to reselect them each time. Click the "Game Map" button to store your settings safely, or use the form with your preferred saved options.',
+  );
+
+  await mod.registerSetting(
+    'checkbox',
+    'charge-type-1',
+    'Charge Type 1',
+    'Remembers charged attacks of the first kind, i.e. most charged attacks. (Such as arcane shot, sanctify/taint spell, focused attack/smite/most charged attacks)',
+  );
+  await mod.registerSetting(
+    'checkbox',
+    'charge-type-2',
+    'Charge Type 2',
+    'Remembers charged attacks of the second kind, i.e. rare types like mystic seeker',
+  );
+  await mod.registerSetting(
+    'checkbox',
+    'precision',
+    'Clockwork Precision',
+    'Remembers the amount for Seraphim\'s Eye of Clockwork Precision.',
+  );
+  await mod.registerSetting(
+    'checkbox',
+    'prayer',
+    'Prayer',
+    'Remembers the last prayer type and maintains it.',
+  );
+  await mod.registerSetting(
+    'checkbox',
+    'repair',
+    'Repair Item',
+    'Remembers the last item repaired and maintains it.',
+  );
+
+  const storeOption = async (key, selectElement) => {
+    const val = selectElement.options[selectElement.selectedIndex].value;
+    if (val) {
+      await mod.setSetting(key, val);
+    }
+  }
+
+  const getSafeStore = (key, path) => {
+    // finds just the first element to store settings from
+    return (e) => {
+      const selects = document.evaluate(path, document, null,
+        XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+      if (selects.length === 0) {
+        return;
+      }
+      storeOption(key, selects.snapshotItem(0));
+    }
+  }
+
+  const getLiveStore = (key, selectName) => {
+    return (e) => {
+      const select = e.target.parentNode[selectName];
+      storeOption(key, select);
+    }
+  }
+
+  const rememberForm = async (key, path, selectName) => {
+    const selectElements = document.evaluate(path, document, null,
+      XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+    const len = selectElements.length;
+    const val = mod.getSetting(key, null);
+    for (let i = 0; i < len; i++) {
+      const sel = selectElements.snapshotItem(i);
+      const button = document.evaluate("input[@type='submit']", sel.parentNode,
+        null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null).snapshotItem(0);
+      button.addEventListener('click', getLiveStore(key, selectName), true);
+      if (val === null) {
+        continue; // skip if no option to remember
+      }
+      const options = sel.options;
+      const jlen = options.length;
+      for (let j = 0; j < jlen; j++) {
+        if (options[j].value === val) {
+          sel.selectedIndex = j;
+          break;
+        }
+      }
+    }
+  }
+
+  const getSingleForm = (key, path, selectName) => {
+    return async (mod) => {
+      const rememberPromise = rememberForm(key, path, selectName);
+      const refresh = document.evaluate("//li[@class='topmenu']/a[text()='Game Map']",
+        document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+      if (refresh.snapshotLength !== 0) {
+        refresh.snapshotItem(0).addEventListener('click', getSafeStore(key, path), true);
+      }
+      await rememberPromise;
+    }
+  }
+
+  if (await mod.getSetting('charge-type-1', false) === true) {
+    await mod.registerMethod(
+      'async',
+      getSingleForm('store-charge-type-1', "//select[@name='powerup']", 'powerup')
+    );
+  }
+  if (await mod.getSetting('charge-type-2', false) === true) {
+    await mod.registerMethod(
+      'async',
+      getSingleForm('store-charge-type-2', "//select[@name='powerup2']", 'powerup2')
+    );
+  }
+  if (await mod.getSetting('precision', false) === true) {
+    await mod.registerMethod(
+      'async',
+      getSingleForm('store-precision', "//select[@name='clockwork_precision']", 'clockwork_precision')
+    );
+  }
+  if (await mod.getSetting('prayer', false) === true) {
+    await mod.registerMethod(
+      'async',
+      getSingleForm('store-prayer', "//select[@name='prayertype']", 'prayertype')
+    );
+  }
+  if (await mod.getSetting('repair', false) === true) {
+    await mod.registerMethod(
+      'async',
+      getSingleForm('store-repair', "//form[@name='repair']/select[@name='item']", 'item')
+    );
+  }
+})());
+
+
 (async () => {
   libC.addGlobalStyle(await GM.getResourceUrl('libCCSS'));
   await Promise.all(promiseList);
