@@ -50,7 +50,7 @@ function ucfirstletter(str){
 // checks if a string represents an integer
 function isNormalInteger(str) {
   let n = ~~Number(str);
-  return String(n) === str && n >= 0;
+  return String(n) === String(str) && n >= 0;
 }
 
 
@@ -62,7 +62,8 @@ function fluffDigit(x) {
 }
 
 
-// sorts a list by the
+// sorts a list by the specified property of an object
+// if reverse is false, the minimum is first (ascending order)
 function getSortByProperty(property, reverse=false) {
   const getProperty = (obj) => obj[property];
   return (a, b) => {
@@ -87,6 +88,21 @@ function removeNextBreaks(element, removeCount=1) {
     return 1;
   } else {
     return 0;
+  }
+}
+
+
+async function ensureIntegerSetting(mod, key, default) {
+  const originalSetting = await mod.getSetting(key, null);
+  if (isNormalInteger(originalSetting)) {
+    const parsedSetting = parseInt(originalSetting);
+    if (originalSetting !== parsedSetting) {
+      await mod.setSetting(key, parsedSetting);
+    }
+    return parsedSetting;
+  } else {
+    await mod.setSetting(key, default);
+    return default;
   }
 }
 
@@ -400,10 +416,13 @@ promiseList.push((async () => {
   }
 
   // helper for ensuring defaults in settings
-  const ensureSortSetting = async (name) => {
-    const sort = getSortSingle(await mod.getSetting(name));
-    await mod.setSetting(name, sort);
-    return sort;
+  const ensureSortSetting = async (key) => {
+    const originalSort = await mod.getSetting(key);
+    const validSort = getSortSingle(originalSort);
+    if (originalSort !== validSort) {
+      await mod.setSetting(key, validSort);
+    }
+    return validSort;
   }
 
   const sortVictim = await ensureSortSetting('sortVictim');
@@ -1347,26 +1366,9 @@ promiseList.push((async () => {
     'Changes the borders of move buttons to be black dashed warnings when your character is at risk.',
   );
 
-  const ensureSettings = async (mod) => {
-    // ensures that the settings are integer values, or else sets them to default vals
-    const originalHP = await mod.getSetting('hp', 30);
-    const originalAP = await mod.getSetting('ap', 13);
-    if (!isNormalInteger(originalHP)) {
-      await mod.setSetting('hp', 30);
-    } else {
-      await mod.setSetting('hp', parseInt(originalHP));
-    }
-    if (!isNormalInteger(originalAP)) {
-      await mod.setSetting('ap', 13);
-    } else {
-      await mod.setSetting('ap', parseInt(originalAP));
-    }
-  }
-
   const warnheaders = async (mod) => {
-    await ensureSettings(mod);
-    const lowHP = mod.getSetting('hp');
-    const lowAP = mod.getSetting('ap');
+    const lowHP = await ensureIntegerSetting(mod, 'hp', 30);
+    const lowAP = await ensureIntegerSetting(mod, 'ap', 13);
     let headerColour = '';
     let headerTitle = '';
     if (libC.charinfo.hp < lowHP) {
@@ -1386,7 +1388,7 @@ promiseList.push((async () => {
       paneTitles[i].style.title = headerTitle;
     }
     // move buttons
-    if (headertitle && mod.getSetting('move', true) === true) {
+    if (headertitle && await mod.getSetting('move') === true) {
       const moves = document.getElementsByName('move');
       len = moves.length;
       for (let i = 0; i < len; i++) {
@@ -1506,36 +1508,233 @@ promiseList.push((async () => {
     }
   }
 
-  if (await mod.getSetting('charge-type-1', false) === true) {
+  if (await mod.getSetting('charge-type-1') === true) {
     await mod.registerMethod(
       'async',
       getSingleForm('store-charge-type-1', "//select[@name='powerup']", 'powerup')
     );
   }
-  if (await mod.getSetting('charge-type-2', false) === true) {
+  if (await mod.getSetting('charge-type-2') === true) {
     await mod.registerMethod(
       'async',
       getSingleForm('store-charge-type-2', "//select[@name='powerup2']", 'powerup2')
     );
   }
-  if (await mod.getSetting('precision', false) === true) {
+  if (await mod.getSetting('precision') === true) {
     await mod.registerMethod(
       'async',
       getSingleForm('store-precision', "//select[@name='clockwork_precision']", 'clockwork_precision')
     );
   }
-  if (await mod.getSetting('prayer', false) === true) {
+  if (await mod.getSetting('prayer') === true) {
     await mod.registerMethod(
       'async',
       getSingleForm('store-prayer', "//select[@name='prayertype']", 'prayertype')
     );
   }
-  if (await mod.getSetting('repair', false) === true) {
+  if (await mod.getSetting('repair') === true) {
     await mod.registerMethod(
       'async',
       getSingleForm('store-repair', "//form[@name='repair']/select[@name='item']", 'item')
     );
   }
+})());
+
+
+//#############################################################################
+promiseList.push((async () => {
+  if (!libC.inGame) { return; }
+  const mod = await libC.registerModule(
+    'petinterface',
+    'Pet Interface',
+    'local',
+    'Vastly improves upon the pet interface with colours, countdowns, hover information, and indicators for the lowest pets.',
+  );
+
+  await mod.registerSetting(
+    'checkbox',
+    'surplus',
+    'Count to MP Surplus',
+    'If checked, will display decay times and hilight based on time until AP equals MP, rather than just AP counts.',
+  );
+  await mod.registerSetting(
+    'textfield',
+    'ap-critical',
+    'AP Critical',
+    'Hilights the pet row when their AP (or AP surplus) is below this threshold.',
+  );
+  await mod.registerSetting(
+    'textfield',
+    'ap-low',
+    'AP Low',
+    'Hilights the pet row when their AP (or AP surplus) is nearing low.',
+  );
+
+  const getTick = () => {
+    const tick = new Date();
+    tick.setMinutes(tick.getMinutes() - (tick.getMinutes() % 15));
+    tick.setSeconds(0);
+    return tick;
+  }
+
+  const parsePetRow = async (row) => {
+    const rowObj = {
+      'row': row,
+      'name': null,
+      'petType': null,
+      'rejuveCost': null,
+      'ap': null,
+      'mp': null,
+      'hp': null,
+      'stance': null,
+      'stanceSelect', null,
+      'stanceSubmit', null,
+    }
+
+    const rename = document.evaluate(
+      '/td[starts-with(@title, "Rename")]/form/input[@type="text" and @name="pet_name"]',
+      row, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null
+    );
+    if (rename.snapshotLength === 1) {
+      const field = rename.snapshotItem(0);
+      rowObj.name = field.value;
+      const petTypeMatch = field.parentElement.innerText.match(/\((.+?)\)/)
+      if (petTypeMatch) {
+        rowObj.petType = petTypeMatch[1];
+      } else {
+        rowObj.petType = field.value;
+      }
+    }
+
+    const rejuve = document.evaluate(
+      '/td[starts-with(@title, "Rejuvenate")]/form/input[@type="submit"]',
+      row, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null
+    );
+    if (rejuve.snapshotLength === 1) {
+      rowObj.rejuveCost = parseInt(rejuve.snapshotItem(0).value);
+    }
+
+    try {
+      rowObj.ap = parseInt(row.cells[2].innerHTML);
+      rowObj.mp = parseInt(row.cells[3].innerHTML);
+      rowObj.hp = parseInt(row.cells[4].innerHTML);
+    } catch (err) {
+      mod.error(`Error parsing pet stats in petrow: "${err.message}" with row "${row.innerHTML}"`);
+    }
+
+    const stanceSubmit = document.evaluate(
+      '/td/form[@name="pet_stance"]/input[@type="submit"]',
+      row, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null
+    );
+    if (stanceSubmit.snapshotLength === 1) {
+      rowObj.stanceSubmit = stanceSubmit.snapshotItem(0);
+    }
+    const stanceSelect = document.evaluate(
+      '/td/form[@name="pet_stance"]/select[@name="stance"]',
+      row, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null
+    );
+    if (stanceSelect.snapshotLength === 1) {
+      rowObj.stanceSelect = stanceSelect.snapshotItem(0);
+      rowObj.stance = stanceSelect.options[stanceSelect.selectedIndex].value;
+    }
+    return rowObj;
+  }
+
+  const setRowClass = async (rowObj, surplusEnabled, apCrit, apLow, minPetIdx) => {
+    let rowClass = rowObj.row.getAttribute('class');
+    let relativeAP = rowObj.ap;
+    if (surplusEnabled === true) {
+      relativeAP = rowObj.ap - rowObj.mp;
+    }
+    if (rowObj.ap < rowObj.mp) {
+      rowClass = `${rowClass} petstatus-mpsurplus`;
+    } else if (relativeAP < apCrit) {
+      rowClass = `${rowClass} petstatus-apcritical`;
+    } else if (relativeAP < apLow) {
+      rowClass = `${rowClass} petstatus-aplow`;
+    }
+    if (minPetIdx < 2 && minPetIdx >= 0) {
+      rowClass = `${rowClass} petstatus-nextpet${minPetIdx}`;
+    }
+    if (rowClass !== rowObj.row.getAttribute('class')) {
+      rowObj.row.setAttribute('class', rowClass);
+    }
+  }
+
+  const displayDecayTime = async (rowObj, tick, surplusEnabled) => {
+    const timeEmpty = new Date(tick);
+    let relativeAP = rowObj.ap
+    if (surplusEnabled === true && rowObj.ap > rowObj.mp) {
+      relativeAP = rowObj.ap - rowObj.mp;
+    }
+    timeEmpty.setMinutes(tick.getMinutes() + (relativeAP * 15));
+    rowObj.row.insertCell(7);
+    rowObj.row.cells[7].innerHTML = `${relativeAP / 4}h`;
+    rowObj.row.cells[7].title = `Decay at ${timeEmpty.toTimeString()} on ${timeEmpty.toDateString()}`;
+  }
+
+  const setStanceForm = async (rowObj) => {
+    rowObj.stanceSelect.onchange = function() { this.form.submit(); };
+  }
+
+  const modifyRow = async (rowObj, tick, surplusEnabled, apCrit, apLow, minPetIdx) => {
+    const displayPromise = displayDecayTime(rowObj, tick, surplusEnabled);
+    const rowClassPromise = setRowClass(rowObj, surplusEnabled, apCrit, apLow, minPetIdx);
+    const stancePromise = setStanceForm(rowObj);
+    await displayPromise;
+    await rowClassPromise;
+    await stancePromise;
+  }
+
+  const modifyPetTable = async (table) => {
+    const table = rowObj.row.parentNode.parentNode;
+    table.style.width = table.offsetWidth - 4;
+    table.rows[1].insertCell(7);
+    table.rows[1].cells[7].innerHTML = 'Decay';
+  }
+
+  const petInterface = async (mod) => {
+    const apCritical = await ensureIntegerSetting(mod, 'ap-critical', 8);
+    const apLow = await ensureIntegerSetting(mod, 'ap-critical', 20)
+    const surplusEnabled = await mod.getSetting('surplus', false);
+    const tick = getTick();
+    const table = document.evaluate(
+      "//table[tbody[tr[td[@title='Rename Pet']]]]",
+      document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null
+    );
+    if (table.snapshotLength === 0) {
+      mod.debug('No pet table detected');
+      return;
+    }
+    await modifyPetTable(table);
+    // parse rows
+    const petRows = document.evaluate(
+      "//tr[td[@title='Rename Pet']]",
+      table, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null
+    );
+    const parseRowPromises = [];
+    const len = petRows.snapshotLength;
+    for (let i = 0; i < len; i++) {
+      parseRowPromises.push(parsePetRow(petRows.snapshotItem(i)));
+    }
+    const petRows = [];
+    for (const rowPromise of parseRowPromises) {
+      petRows.push(await rowPromise);
+    }
+    // sort and modify rows
+    petRows.sort(getSortByProperty('ap', false));
+    const modRowFunc = async (rowObj) => {
+      const minPetIdx = petRows.indexOf(rowObj);
+      await modifyRow(rowObj, tick, surplusEnabled, apCritical, apLow, minPetIdx);
+    }
+    const modifyRowPromises = petRows.map(modRowFunc);
+    await Promise.all(modifyRowPromises);
+  }
+
+  await mod.registerMethod(
+    'async',
+    petInterface
+  );
 })());
 
 
