@@ -242,7 +242,7 @@ function LibCScaffolding() {
       const statParser = (div, title, match) => {
         try {
           const node = document.evaluate(
-            `td/a[contains(@title, "${title}")]`,
+            `//td/a[contains(@title, "${title}")]`,
             div, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null
           ).snapshotItem(0);
           let matchResult = node.textContent.match(new RegExp(`(\d+) ${match}`));
