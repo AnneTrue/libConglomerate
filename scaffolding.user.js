@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        LibC Scaffolding
-// @version     1.0.1
+// @version     1.0.2
 // @description Scaffolding and API for libConglomerate
 // @namespace   https://github.com/AnneTrue/
 // @author      Anne True
@@ -237,7 +237,7 @@ function LibCScaffolding() {
       this.charinfo.level = levelclassdata[1];
       this.charinfo.class = levelclassdata[2];
 
-      const statParser = async (div, title, match) => {
+      const statParser = (div, title, match) => {
         try {
           const node = document.evaluate(
             "//td/a[contains(@title, 'Action Points')]",
@@ -245,20 +245,17 @@ function LibCScaffolding() {
           ).snapshotItem(0);
           let matchResult = node.textContent.match(new RegExp(`(\d+) ${match}`));
           if (matchResult) {
-            return matchResult[1]
+            return matchResult[1];
           }
-          return null
         } catch (err) {
           this.log(`Charinfo Parse ${match} error: ${err.message}`);
         }
+        return null;
       }
 
-      const ap = statParser(this.charinfo.div, 'Action Points', 'AP')
-        .then((ap) => { this.charinfo.ap = ap; });
-      const hp = statParser(this.charinfo.div, 'Hit Points', 'HP')
-        .then((hp) => { this.charinfo.hp = hp; });
-      const mp = statParser(this.charinfo.div, 'Magic Points', 'MP')
-        .then((mp) => { this.charinfo.mp = mp; });
+      this.charinfo.ap = statParser(this.charinfo.div, 'Action Points', 'AP');
+      this.charinfo.hp = statParser(this.charinfo.div, 'Hit Points', 'HP');
+      this.charinfo.mp = statParser(this.charinfo.div, 'Magic Points', 'MP');
     } catch (err) {
       this.error(`Error in getCharacterInfo: ${err.message}`);
     }
