@@ -8,11 +8,11 @@
 .petstatus-aplow { background-color: #999999; }
 .petstatus-apcritical { background-color: #999933; }
 .petstatus-mpsurplus { background-color: #cc6677; color:black; }
-.petstatus-nextpet td {
+.petstatus-minpet0 td {
   border-top: 3px solid black;
   border-bottom: 3px solid black;
 }
-.petstatus-nextpet2 td {
+.petstatus-minpet1 td {
   border-top: 2px solid black;
   border-bottom: 2px solid black;
 }
