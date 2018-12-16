@@ -907,7 +907,7 @@ promiseList.push((async () => {
   ]
   const messageMatches = [
     {
-      msg: new RegExp(`${pfx}You attack .*? with your .*? and hit for .*? damage\.`),
+      msg: new RegExp(`${pfx}You attack .*? with your .*? and hit for .*? damage\\.`),
       op:'pad', val:'libAttackHit'
     },
     {
@@ -915,7 +915,7 @@ promiseList.push((async () => {
       op:'pad', val:'libFort'
     },
     {
-      msg: new RegExp(`${pfx}You attack .*? with your .*? and miss\.`),
+      msg: new RegExp(`${pfx}You attack .*? with your .*? and miss\\.`),
       op:'pad', val:'libAttackMiss'
     },
     {
@@ -1011,7 +1011,7 @@ promiseList.push((async () => {
       op:'pad', val:'libSummon'
     },
     {
-      msg: new RegExp(`(${pfx}You (?:say|whisper|emote), )(\".+)`),
+      msg: new RegExp(`(${pfx}You (?:say|whisper|emote), )(".+)`),
       op: 'replace',
       val:'<div class="libSpeech"><span class="libEmote">$1</span>$2</div>'
     },
@@ -1373,7 +1373,7 @@ promiseList.push((async () => {
     let headerTitle = '';
     if (libC.charinfo.hp < lowHP) {
       headerColour = 'crimson';
-      headertitle = 'LOW HP';
+      headerTitle = 'LOW HP';
     } else if (libC.charinfo.ap < lowAP) {
       headerColour = 'gold';
       headerTitle = 'LOW AP';
@@ -1385,10 +1385,10 @@ promiseList.push((async () => {
     let len = paneTitles.length;
     for (let i = 0; i < len; i++) {
       paneTitles[i].style.color = headerColour;
-      paneTitles[i].style.title = headerTitle;
+      paneTitles[i].title = headerTitle;
     }
     // move buttons
-    if (headertitle && await mod.getSetting('move') === true) {
+    if (headerTitle && await mod.getSetting('move') === true) {
       const moves = document.getElementsByName('move');
       len = moves.length;
       for (let i = 0; i < len; i++) {
