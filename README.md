@@ -93,10 +93,10 @@ The largest two features are the inventory and the alchemy modules, which vastly
 
 * Pet Interface 
   * Overhauls the pet interface. Petmasters, rejoice! 
-  * Adds a decay timer to the pet rows. Displays hours (in decimal, .25h is 15 minutes) until the pet hits their surplus or despawn point. Hovering over the decay field displays a 24-hour formatted local time that the pet decays. Note that times over 24 hours do not include dates. 
-  * Removes the 'set stance' button for individual pets. Be warned, if you change the stance of the pet in the drop down it will go through immediately. Does not affect the 'Set All Pets' drop down. 
+  * Adds a decay timer to the pet rows. Displays hours (in decimal, .25h is 15 minutes) until the pet hits their surplus or despawn point. Hovering over the decay field displays the local time at which the pet will despawn (or reach MP surplus if the option is enabled).
+  * Removes the 'set stance' button for individual pets. Be warned, if you change the stance of a single pet in the drop down it will go through immediately. Does not affect the 'Set All Pets' drop down. 
   * Adds colours to pets based on their ap and mp status, determined by optional thresholds. 
-  * Hilights the first and second pets in most critical need of rejuvenations. Order is determined by lowest AP, ties are broken over MP then HP. (Caveat: Lowest AP may not apply when count to MP surplus is in play. More on that later.) 
+  * Hilights the first and second pets in most critical need of rejuvenations. Order is determined by lowest AP. (Caveat: Lowest raw AP may not apply when count to MP surplus is enabled.) 
   * If the pet has more MP than AP (an MP surplus) then its row is coloured red. 
   * If the pet is low on AP (defined by user option) then its row is coloured grey. If it is critically low on AP, it is coloured yellow. 
   * Count to MP Surplus forces the pet AP counts to be adjusted for MP. AP is therefore calculated variably, treating 0 AP as being the same as their current MP. This is a recommended feature for petmasters if you intend to keep your pets above an MP surplus to maximise their fighting potential, and to balance out large discrepancies between pet AP/MP totals when rejuvenating. 
