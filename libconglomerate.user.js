@@ -1650,6 +1650,9 @@ promiseList.push((async () => {
 
   const setRowClass = async (rowObj, surplusEnabled, apCrit, apLow, minPetIdx) => {
     let rowClass = rowObj.row.getAttribute('class');
+    if (!rowClass) {
+      rowClass = '';
+    }
     let relativeAP = rowObj.ap;
     if (surplusEnabled === true) {
       relativeAP = rowObj.ap - rowObj.mp;
@@ -1662,7 +1665,7 @@ promiseList.push((async () => {
       rowClass = `${rowClass} petstatus-aplow`;
     }
     if (minPetIdx < 2 && minPetIdx >= 0) {
-      rowClass = `${rowClass} petstatus-nextpet${minPetIdx}`;
+      rowClass = `${rowClass} petstatus-minpet${minPetIdx}`;
     }
     if (rowClass !== rowObj.row.getAttribute('class')) {
       rowObj.row.setAttribute('class', rowClass);
