@@ -21,7 +21,6 @@
 function LibCScaffolding() {
   'use strict';
   this.version = `${GM.info.script.version}`;
-  this.scaffoldingVersion = `${GM.info.script.version}`;
   // logs to console; can disable if you want
   this.logging = true;
   // verbose logging, set true for dev-work
@@ -196,7 +195,6 @@ function LibCScaffolding() {
       return
     }
     this.runCalled = true;
-    this.debug(`runLibC with scaffold version ${this.scaffoldingVersion}`);
     // wait for module registration promises
     await Promise.all(this.promises);
 
