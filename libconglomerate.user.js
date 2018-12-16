@@ -80,7 +80,7 @@ function getSortByProperty(property, reverse=false) {
 // The return value is the number of elements deleted
 function removeNextBreaks(element, removeCount=1) {
   if (!element) { return; }
-  if (element.nextElementSibling && element.nextElementSibling.tagName.toLowerCase === 'br') {
+  if (element.nextElementSibling && element.nextElementSibling.tagName.toLowerCase() === 'br') {
     element.nextElementSibling.remove();
     if (removeCount > 1) {
       return 1 + removeNextBreaks(element, removeCount - 1);
