@@ -71,7 +71,7 @@ async function myComplexMethod(libCModule) {
   // display name is the human readable value shown in the libC configuration pane
   // description is a brief explanation of the setting, and is set as the hovertext for the setting element
   // extra defaults to null
-  // if type is textfield, extra must be list of objects with properties 'value' and 'text'
+  // if type is select, extra must be list of objects with properties 'value' and 'text'
     // the option value=value, and the option display text=text
   await mod.registerSetting('textfield', 'testVal1', 'Test Value 1', 'has a test desc', null);
 
