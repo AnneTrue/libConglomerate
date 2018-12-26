@@ -23,7 +23,7 @@
 
 const myPromise = libC.registerPromise(); // script-file promise
 const promiseList = []; // individual module promises
-libC.version = `${GM.info.script.version}`;
+// libC.version = `${GM.info.script.version}`;
 
 // uncomment below to enable verbose logging, useful if you're debugging or developing
 // libC.verbose = true;
@@ -1746,6 +1746,169 @@ promiseList.push((async () => {
   await mod.registerMethod(
     'async',
     petInterface
+  );
+})());
+
+
+//#############################################################################
+promiseList.push((async () => {
+  if (!libC.inGame) { return; }
+  const mod = await libC.registerModule(
+    'accesskeys',
+    'Access Keys',
+    'local',
+    'Adds more access keys (shortcuts), such as for healing, bashing forts, picking up items, or repairing/removing power.',
+  );
+  
+  const accessKeyElement = (value, text) => {
+    return {'value': value, 'text': text};
+  }
+  
+  const accessKeyFactory = (defaultKey) => {
+    const keyList = [
+      accessKeyElement('', 'Disable'),
+      accessKeyElement('B', 'B'),
+      accessKeyElement('C', 'C'),
+      accessKeyElement('E', 'E'),
+      accessKeyElement('F', 'F'),
+      accessKeyElement('G', 'G'),
+      accessKeyElement('J', 'J'),
+      accessKeyElement('K', 'K'),
+      accessKeyElement('L', 'L'),
+      accessKeyElement('N', 'N'),
+      accessKeyElement('O', 'O'),
+      accessKeyElement('Q', 'Q'),
+      accessKeyElement('R', 'R'),
+      accessKeyElement('T', 'T'),
+      accessKeyElement('U', 'U'),
+      accessKeyElement('V', 'V'),
+      accessKeyElement('W', 'W'),
+      accessKeyElement('X', 'X'),
+      accessKeyElement('Y', 'Y'),
+      accessKeyElement('Z', 'Z'),
+      accessKeyElement('!', '!'),
+      accessKeyElement('"', '"'),
+      accessKeyElement('£', '£'),
+      accessKeyElement('@', '@'),
+      accessKeyElement('#', '#'),
+      accessKeyElement('$', '$'),
+      accessKeyElement('%', '%'),
+      accessKeyElement('^', '^'),
+      accessKeyElement('&', '&'),
+      accessKeyElement('*', '*'),
+      accessKeyElement('(', '('),
+      accessKeyElement(')', ')'),
+    ];
+    for (const element of keyList) {
+      if (element.value === defaultKey) {
+        element.text = `(${element.text})`;
+        break;
+      }
+    }
+    return keyList;
+  }
+
+  await mod.registerSetting(
+    'select',
+    'fort',
+    'Fort-Bash',
+    'Adds an accesskey for fort-bashing. Suggested default F.',
+    accessKeyFactory('F')
+  );
+  await mod.registerSetting(
+    'select',
+    'heal',
+    'Heal',
+    'Adds an accesskey for healing. Default order is FAKs, Bone Leeches, Herbs, then Surgery, depending on what is available. Suggested default X.',
+    accessKeyFactory('X')
+  );
+  await mod.registerSetting(
+    'select',
+    'pickup',
+    'Retrieve Item',
+    'Adds an accesskey for picking up targets and throwing weapons. Suggested default E.',
+    accessKeyFactory('E')
+  );
+  await mod.registerSetting(
+    'select',
+    'door',
+    'Enter/Exit Tile',
+    'Adds an accesskey for entering and exiting a tile. Suggested default B.',
+    accessKeyFactory('B')
+  );
+  await mod.registerSetting(
+    'select',
+    'recapture',
+    'Recapture Standard',
+    'Adds an accesskey for recapturing a standard. Suggested default L.',
+    accessKeyFactory('L')
+  );
+  await mod.registerSetting(
+    'select',
+    'power',
+    'Power Remove/Repair',
+    'Adds an accesskey for restoring/removing power to a tile. Suggested default J.',
+    accessKeyFactory('J')
+  );
+  await mod.registerSetting(
+    'select',
+    'recipe-pane',
+    'Recipe Pane',
+    'Adds an accesskey for the alchemy recipe pane. Suggested default R.',
+    accessKeyFactory('R')
+  );
+  await mod.registerSetting(
+    'select',
+    'pet-pane',
+    'Pet Pane',
+    'Adds an accesskey for the pet pane. Suggested default T.',
+    accessKeyFactory('T')
+  );
+
+  const getAccessKeySetter = (settingID, path) => {
+    return async (mod) => {
+      const key = await mod.getSetting(settingID, '');
+      if (!key) {
+        return;
+      }
+      const form = document.evaluate(path, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+      if (form.snapshotLength !== 0) {
+        form.snapshotItem(0).accessKey = key;
+      }
+    }
+  }
+
+  await mod.registerMethod(
+    'async',
+    getAccessKeySetting('fort', "//form[@name='fortificationattack']/input[@type='submit']")
+  );
+  await mod.registerMethod(
+    'async',
+    getAccessKeySetting('heal', "//form/input[@name='heal_type']/../input[@type='submit']")
+  );
+  await mod.registerMethod(
+    'async',
+    getAccessKeySetting('pickup', "//form[@name='pickup']/input[@type='submit']")
+  );
+  await mod.registerMethod(
+    'async',
+    getAccessKeySetting('door', "//form[@name='doorenter']/input[@type='submit']")
+  );
+  await mod.registerMethod(
+    'async',
+    getAccessKeySetting('recapture', "//form[@name='flag_retrieval']/input[@type='submit']")
+  );
+  await mod.registerMethod(
+    'async',
+    getAccessKeySetting('power', "//form[@name='repair_power' or @name='remove_power']/input[@type='submit']")
+  );
+  await mod.registerMethod(
+    'async',
+    getAccessKeySetting('recipe-pane', "//form[@name='sidebar']/input[@type='submit' and @value='Recipes']")
+  );
+  await mod.registerMethod(
+    'async',
+    getAccessKeySetting('pet-pane', "//form[@name='sidebar']/input[@type='submit' and starts-with(@value, 'Pets')]")
   );
 })());
 
