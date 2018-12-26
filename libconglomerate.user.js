@@ -1880,35 +1880,35 @@ promiseList.push((async () => {
 
   await mod.registerMethod(
     'async',
-    getAccessKeySetting('fort', "//form[@name='fortificationattack']/input[@type='submit']")
+    getAccessKeySetter('fort', "//form[@name='fortificationattack']/input[@type='submit']")
   );
   await mod.registerMethod(
     'async',
-    getAccessKeySetting('heal', "//form/input[@name='heal_type']/../input[@type='submit']")
+    getAccessKeySetter('heal', "//form/input[@name='heal_type']/../input[@type='submit']")
   );
   await mod.registerMethod(
     'async',
-    getAccessKeySetting('pickup', "//form[@name='pickup']/input[@type='submit']")
+    getAccessKeySetter('pickup', "//form[@name='pickup']/input[@type='submit']")
   );
   await mod.registerMethod(
     'async',
-    getAccessKeySetting('door', "//form[@name='doorenter']/input[@type='submit']")
+    getAccessKeySetter('door', "//form[@name='doorenter']/input[@type='submit']")
   );
   await mod.registerMethod(
     'async',
-    getAccessKeySetting('recapture', "//form[@name='flag_retrieval']/input[@type='submit']")
+    getAccessKeySetter('recapture', "//form[@name='flag_retrieval']/input[@type='submit']")
   );
   await mod.registerMethod(
     'async',
-    getAccessKeySetting('power', "//form[@name='repair_power' or @name='remove_power']/input[@type='submit']")
+    getAccessKeySetter('power', "//form[@name='repair_power' or @name='remove_power']/input[@type='submit']")
   );
   await mod.registerMethod(
     'async',
-    getAccessKeySetting('recipe-pane', "//form[@name='sidebar']/input[@type='submit' and @value='Recipes']")
+    getAccessKeySetter('recipe-pane', "//form[@name='sidebar']/input[@type='submit' and @value='Recipes']")
   );
   await mod.registerMethod(
     'async',
-    getAccessKeySetting('pet-pane', "//form[@name='sidebar']/input[@type='submit' and starts-with(@value, 'Pets')]")
+    getAccessKeySetter('pet-pane', "//form[@name='sidebar']/input[@type='submit' and starts-with(@value, 'Pets')]")
   );
 })());
 
