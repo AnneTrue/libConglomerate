@@ -130,6 +130,8 @@ The largest two features are the inventory and the alchemy modules, which vastly
   * Enter/Exit Key: Recommended B. To enter or exit a building quickly. Does not work to enter with a closed door if you have certain skills that bypass doors through separate means (stepping of the corner). 
   * Recapture Key: Recommended L. For retrieving captured standards before pets maul you. Use with the recapture default module. 
   * Power Repair/Remove Key: Recommended J. For cutting/restoring power to a tile.
+  * Recipe Pane: Recommended R. Opens the Recipe pane in the multi-function pane.
+  * Pet Pane: Recommended T. Opens the Pet pane in the multi-function pane.
 
 * Inventory Tweaks 
   * Does nothing unless options are selected. Improves the inventory pane to be less cluttered. 
