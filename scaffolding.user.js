@@ -465,6 +465,8 @@ function LibCModule(id, name, localType, description) {
 
 
   this.registerSetting = async (type, id, name, desc, extra=null) => {
+    // if type is select, extra must be list of objects with properties 'value' and 'text'
+    // corresponding to option value and display text
     const setting = new LibCSetting(type, id, name, desc, extra);
     this.settings.push(setting);
     return setting
