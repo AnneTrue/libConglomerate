@@ -131,10 +131,6 @@ The largest two features are the inventory and the alchemy modules, which vastly
   * Recapture Key: Recommended L. For retrieving captured standards before pets maul you. Use with the recapture default module. 
   * Power Repair/Remove Key: Recommended J. For cutting/restoring power to a tile.
 
-* Remove Gem Colour 
-  * Requires spellcraft, only applies to a faction's safe and not your footlocker or inventory. 
-  * Removes the colour of the gem entirely, places all the gems in the same place (Spellgem -) and sorts them alphabetically by name and charges left. 
-
 * Inventory Tweaks 
   * Does nothing unless options are selected. Improves the inventory pane to be less cluttered. 
   * Fast Charge/Reload places items that can be reloaded (bullhorns, guns, bows, spellgems, etc.) at the top of the inventory pane. 
