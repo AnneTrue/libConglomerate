@@ -576,6 +576,7 @@ function safebuttons() {
     if (getSetting('safety-extra-well') == 'true') { safetyButtons("//form[@name='skilluse']/input[@type='submit' and starts-with(@value, 'Open Arcane Well')]", 'disable'); }
     if (getSetting('safety-extra-mark') == 'true') { safetyButtons("//form[@name='skilluse']/input[@type='submit' and starts-with(@value, 'Create Nexal Mark')]", 'disable'); }
     if (getSetting('safety-extra-hself') == 'true') { safetyButtons("//form[@name='skilluse']/input[@type='submit' and starts-with(@value, 'Heal Self')]", 'disable'); }
+    if (getSetting('safety-extra-shape') == 'true') { safetyButtons("//form[@name='spellaaoettack']/input[@type='submit' and starts-with(@value, 'Shape Area Spell')]", 'disable'); }
 }
 
 
@@ -1928,6 +1929,7 @@ function libSettings() {
         ['safety', 'b', 'Safe Well', 'well', 'Adds a safety to creating an Arcane Well on Conduit.'],
         ['safety', 'b', 'Safe Mark', 'mark', 'Adds a safety to creating a Nexal Mark on Conduit.'],
         ['safety', 'b', 'Safe Heal Self', 'hself', 'Adds a safety to Heal Self on Sorcerer.'],
+        ['safety', 'b', 'Safe Shape Area', 'shape', 'Adds a safety to Shape Area for Sorcerer exits with Deep Spellcraft.'],
         ['weaponpane', 'b', 'Print DPA', 'dpa', 'Prints the raw DPA for each attack in drop-downs.'],
         ['weaponpane', 'b', 'Shorten Damage', 'dmg', 'Shortens the damage and accuracy counts in drop-downs.'],
         ['weaponpane', 'b', 'Shorten Shots', 'shots', 'Shortens the shots remaining in drop-downs.'],
