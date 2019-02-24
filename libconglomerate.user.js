@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           LibC
-// @version        3.1.6
+// @version        3.1.7
 // @description    Lib's Conglomerated Scripts
 // @namespace      https://github.com/AnneTrue/
 // @author         Anne True
@@ -16,7 +16,7 @@
 // ==/UserScript==
 
 (function () {
-var versionStr = '3.1.6'; // version updates go here too!
+var versionStr = '3.1.7'; // version updates go here too!
 
 // logs to console; can disable if you want
 var libCLogging = true;
