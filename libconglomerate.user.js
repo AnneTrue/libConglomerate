@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           LibC
-// @version        3.1.7
+// @version        3.1.8
 // @description    Lib's Conglomerated Scripts
 // @namespace      https://github.com/AnneTrue/
 // @author         Anne True
@@ -16,7 +16,7 @@
 // ==/UserScript==
 
 (function () {
-var versionStr = '3.1.7'; // version updates go here too!
+var versionStr = '3.1.8'; // version updates go here too!
 
 // logs to console; can disable if you want
 var libCLogging = true;
@@ -577,6 +577,7 @@ function safebuttons() {
     if (getSetting('safety-extra-mark') == 'true') { safetyButtons("//form[@name='skilluse']/input[@type='submit' and starts-with(@value, 'Create Nexal Mark')]", 'disable'); }
     if (getSetting('safety-extra-hself') == 'true') { safetyButtons("//form[@name='skilluse']/input[@type='submit' and starts-with(@value, 'Heal Self')]", 'disable'); }
     if (getSetting('safety-extra-shape') == 'true') { safetyButtons("//form[@name='spellaaoettack']/input[@type='submit' and starts-with(@value, 'Shape Area Spell')]", 'disable'); }
+    if (getSetting('safety-extra-martyr') == 'true') { safetyButtons("//form[@name='skilluse']/input[@type='submit' and starts-with(@value, 'Mask of the Martyr')]", 'disable'); }
 }
 
 
@@ -1930,6 +1931,7 @@ function libSettings() {
         ['safety', 'b', 'Safe Mark', 'mark', 'Adds a safety to creating a Nexal Mark on Conduit.'],
         ['safety', 'b', 'Safe Heal Self', 'hself', 'Adds a safety to Heal Self on Sorcerer.'],
         ['safety', 'b', 'Safe Shape Area', 'shape', 'Adds a safety to Shape Area for Sorcerer exits with Deep Spellcraft.'],
+        ['safety', 'b', 'Safe Mask of the Martyr', 'martyr', 'Adds a saftey to Mask of the Martyr on Redeemed.'],
         ['weaponpane', 'b', 'Print DPA', 'dpa', 'Prints the raw DPA for each attack in drop-downs.'],
         ['weaponpane', 'b', 'Shorten Damage', 'dmg', 'Shortens the damage and accuracy counts in drop-downs.'],
         ['weaponpane', 'b', 'Shorten Shots', 'shots', 'Shortens the shots remaining in drop-downs.'],
