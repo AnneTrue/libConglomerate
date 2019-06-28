@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           LibC
-// @version        3.1.8
+// @version        3.1.9
 // @description    Lib's Conglomerated Scripts
 // @namespace      https://github.com/AnneTrue/
 // @author         Anne True
@@ -16,7 +16,7 @@
 // ==/UserScript==
 
 (function () {
-var versionStr = '3.1.8'; // version updates go here too!
+var versionStr = '3.1.9'; // version updates go here too!
 
 // logs to console; can disable if you want
 var libCLogging = true;
@@ -393,14 +393,14 @@ function createSortPerson(ppl, allyneutral) {
             retPerson.politics = 'friends';
         }
     } else { logLibC('Error: createSortPerson failed to match politics'); }
-    
+
 
     // character ID
     temp = /href="javascript:SelectItem\('target_id','(\d+)'\)">/.exec(ppl)
     if (temp) {
         retPerson.id = temp[1]
     } else { logLibC('Error: createSortPerson failed to match char ID'); }
-    
+
     // character link (level, and alternate ID)
     temp = /\(<a href="modules.php\?name=Game&amp;op=character&amp;id=(\d+)">(\d*)<\/a>\)/.exec(ppl)
     if (temp) {
@@ -1308,7 +1308,7 @@ function parseSafeItems() {
 
 function parseInventoryItems() {
     var items = [], len, i, component, value;
-    var safeOptions = document.evaluate("//form[@name='safestock' or @name='alchemyresearch' or @name='give']/select[@name='item' or @name='give_item_id']/option",document,null,XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,null);
+    var safeOptions = document.evaluate("//form[@name='safestock' or @name='alchemyresearch' or @name='give']/select[@name='item' or @name='give_item_id' or @name='itemid']/option",document,null,XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,null);
     len = safeOptions.snapshotLength;
     for (i = 0; i < len; i++) {
         component = safeOptions.snapshotItem(i).innerHTML;
