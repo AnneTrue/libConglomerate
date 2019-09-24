@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           LibC
-// @version        3.1.9
+// @version        3.1.10
 // @description    Lib's Conglomerated Scripts
 // @namespace      https://github.com/AnneTrue/
 // @author         Anne True
@@ -16,7 +16,7 @@
 // ==/UserScript==
 
 (function () {
-var versionStr = '3.1.9'; // version updates go here too!
+var versionStr = '3.1.10'; // version updates go here too!
 
 // logs to console; can disable if you want
 var libCLogging = true;
@@ -176,14 +176,14 @@ function showhilights() {
                 targetdesc.appendChild(document.createTextNode(' There are '+pucount+' items on the floor.'));
             }
         }
-    descdiv.appendChild(targetdesc);
+        descdiv.appendChild(targetdesc);
+    }
     desc.parentNode.insertBefore(descdiv, desc);
     if (desc.nextElementSibling && desc.nextElementSibling.tagName.toLowerCase() == 'br') {
         // remove extra <br> line break
         desc.nextElementSibling.remove()
     }
     desc.remove(); // we copied things, remove (redundant) original
-    }
 }
 
 
