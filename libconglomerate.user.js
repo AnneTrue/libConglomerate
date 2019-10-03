@@ -1278,11 +1278,11 @@ function getInvItem(item) {
 
 function parseSafeItems() {
     var items = [], len, i, j, safestatus, safeType, safeOptions, componentMatch, componentId, component, count, alchemyItems;
-    var safe = document.evaluate("//form[@name='footlockergrab']", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+    var safe = document.evaluate("//form[@name="footlockergrab"][input[@value="retrieve"]]", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
     safestatus = safe.snapshotLength;
     for (j = 0; j < safestatus; j++) {
         safeType = safe.snapshotItem(j).getAttribute('action').match(/op=([^"]*)/)[1];
-        safeOptions = document.evaluate('.//option[@value>="11"]', safe.snapshotItem(j), null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+        safeOptions = document.evaluate('.//option', safe.snapshotItem(j), null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
         len = safeOptions.snapshotLength;
         for (i = 0; i < len; i++) {
             //match components
