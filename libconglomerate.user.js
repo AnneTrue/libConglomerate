@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           LibC
-// @version        3.1.11
+// @version        3.1.12
 // @description    Lib's Conglomerated Scripts
 // @namespace      https://github.com/AnneTrue/
 // @author         Anne True
@@ -16,7 +16,7 @@
 // ==/UserScript==
 
 (function () {
-var versionStr = '3.1.11'; // version updates go here too!
+var versionStr = '3.1.12'; // version updates go here too!
 
 // logs to console; can disable if you want
 var libCLogging = true;
@@ -1278,11 +1278,11 @@ function getInvItem(item) {
 
 function parseSafeItems() {
     var items = [], len, i, j, safestatus, safeType, safeOptions, componentMatch, componentId, component, count, alchemyItems;
-    var safe = document.evaluate(‘//form[@name="footlockergrab"][input[@value="retrieve"]]’, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+    var safe = document.evaluate("//form[@name='footlockergrab'][input[@value='retrieve']]", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
     safestatus = safe.snapshotLength;
     for (j = 0; j < safestatus; j++) {
         safeType = safe.snapshotItem(j).getAttribute('action').match(/op=([^"]*)/)[1];
-        safeOptions = document.evaluate('.//select[@name="item"]/option', safe.snapshotItem(j), null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+        safeOptions = document.evaluate(".//select[@name='item]/option", safe.snapshotItem(j), null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
         len = safeOptions.snapshotLength;
         for (i = 0; i < len; i++) {
             //match components
