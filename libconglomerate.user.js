@@ -136,13 +136,8 @@ try {
 //#############################################################################
 // Tweak: highlight shadows from outside buildings, lights status, and targets in a tile
 function showhilights() {
-    var locSnapShot, desc, descString, descdiv, descMatch, descPieces, puforms, targetdesc, pucount, themeCheck;
-    themeCheck = document.getElementById('pane-content-description');
-    if (themeCheck) {
-        locSnapShot = document.evaluate("//td[@valign='top']/section[@id='pane-content-description']/div[@class='tile_description']/img", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-    } else {
-        locSnapShot = document.evaluate("//td[@valign='top']/div[@class='tile_description']/img", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-    }
+    var locSnapShot, desc, descString, descdiv, descMatch, descPieces, puforms, targetdesc, pucount;
+    locSnapShot = document.evaluate("//td[@valign='top']/section[@id='pane-content-description']/div[@class='tile_description']/img | //td[@valign='top']/div[@class='tile_description']/img", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
 
     if (locSnapShot.snapshotLength === 0) { return; }
     desc = locSnapShot.snapshotItem(0).nextSibling;
