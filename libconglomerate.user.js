@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           LibC
-// @version        3.1.12
+// @version        3.1.13
 // @description    Lib's Conglomerated Scripts
 // @namespace      https://github.com/AnneTrue/
 // @author         Anne True
@@ -16,7 +16,7 @@
 // ==/UserScript==
 
 (function () {
-var versionStr = '3.1.12'; // version updates go here too!
+var versionStr = '3.1.13'; // version updates go here too!
 
 // logs to console; can disable if you want
 var libCLogging = true;
@@ -137,10 +137,9 @@ try {
 // Tweak: highlight shadows from outside buildings, lights status, and targets in a tile
 function showhilights() {
     var locSnapShot, desc, descString, descdiv, descMatch, descPieces, puforms, targetdesc, pucount;
-    locSnapShot = document.evaluate("//td[@valign='top']/div[@class='tile_description']/img", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+    locSnapShot = document.evaluate("//td[@valign='top']/section[@id='pane-content-description']/div[@class='tile_description']/img | //td[@valign='top']/div[@class='tile_description']/img", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
 
     if (locSnapShot.snapshotLength === 0) { return; }
-
     desc = locSnapShot.snapshotItem(0).nextSibling;
 
     // lights and shadows
