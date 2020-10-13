@@ -577,6 +577,7 @@ function safebuttons() {
     if (getSetting('safety-extra-hself') == 'true') { safetyButtons("//form[@name='skilluse']/input[@type='submit' and starts-with(@value, 'Heal Self')]", 'disable'); }
     if (getSetting('safety-extra-shape') == 'true') { safetyButtons("//form[@name='spellaaoettack']/input[@type='submit' and starts-with(@value, 'Shape Area Spell')]", 'disable'); }
     if (getSetting('safety-extra-martyr') == 'true') { safetyButtons("//form[@name='skilluse']/input[@type='submit' and starts-with(@value, 'Mask of the Martyr')]", 'disable'); }
+    if (getSetting('safety-extra-manabite') == 'true') { safetyButtons("//a[@class='item_use' and starts-with(text(), 'Manabite')]", 'hide'); }
 }
 
 
@@ -1931,6 +1932,7 @@ function libSettings() {
         ['safety', 'b', 'Safe Heal Self', 'hself', 'Adds a safety to Heal Self on Sorcerer.'],
         ['safety', 'b', 'Safe Shape Area', 'shape', 'Adds a safety to Shape Area for Sorcerer exits with Deep Spellcraft.'],
         ['safety', 'b', 'Safe Mask of the Martyr', 'martyr', 'Adds a saftey to Mask of the Martyr on Redeemed.'],
+        ['safety', 'b', 'Safe Manabite', 'manabite', 'Adds a safety to Manabite on Corruptor.'],
         ['weaponpane', 'b', 'Print DPA', 'dpa', 'Prints the raw DPA for each attack in drop-downs.'],
         ['weaponpane', 'b', 'Shorten Damage', 'dmg', 'Shortens the damage and accuracy counts in drop-downs.'],
         ['weaponpane', 'b', 'Shorten Shots', 'shots', 'Shortens the shots remaining in drop-downs.'],
