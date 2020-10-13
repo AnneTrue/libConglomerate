@@ -54,6 +54,7 @@ The largest two features are the inventory and the alchemy modules, which vastly
   * Safe Mark is for Conduits: adds a safety to creating Nexal Marks.
   * Safe Heal Self is for Sorcerers: adds a safety to Heal Self.
   * Safe Mask of the Martyr is for Redeemed: adds a safety to prevent activating Mask of the Martyr
+  * Safe Manabit: adds a safety to manabiting spellgems
 
 * Thin Character Bars
   * If a character has full HP, the HP bar is made thinner.
