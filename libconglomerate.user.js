@@ -1510,6 +1510,9 @@ function accesskeys() {
     if (getSetting('accesskeys-extra-power') != 'null') {
         addAccessKey('power', "//form[@name='repair_power' or @name='remove_power']/input[@type='submit']");
     }
+    if (getSetting('accesskeys-extra-targetsetup') != 'null') {
+        addAccessKey('targetsetup', "//form[@name='targetsetup']/input[@type='submit']");
+    }
 }
 
 
@@ -1970,6 +1973,7 @@ function libSettings() {
         ['accesskeys', 's', 'Enter/Exit Key', 'door', 'Adds an accesskey for entering and exiting a tile. Suggested default B.', accessKeyFactory('B')],
         ['accesskeys', 's', 'Recapture Key', 'recap', 'Adds an accesskey for recapturing a standard. Suggested default L.', accessKeyFactory('L')],
         ['accesskeys', 's', 'Power Remove/Repair Key', 'power', 'Adds an accesskey for restoring/removing power to a tile. Suggested default J.', accessKeyFactory('J')],
+        ['accesskeys', 's', 'Target Setup Key', 'targetsetup', 'Adds an accesskey for setting up targets to shoot. Suggested default G.', accessKeyFactory('G')],
         ['inventory', 'b', 'Fast Charge/Reload', 'reload', 'Places gems able to be recharged and weapons able to be reloaded at the top of the list.'],
         ['inventory', 'b', 'Hide Weightless Items', 'hide', 'Hides weightless items in inventory, with a toggle to display them.'],
         ['inventory', 'b', 'Short Item Names', 'short', 'Shortens item names in the inventory to conserve space.'],
