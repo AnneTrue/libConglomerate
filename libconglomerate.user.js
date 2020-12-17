@@ -16,7 +16,7 @@
 // ==/UserScript==
 
 (function () {
-var versionStr = '3.1.13'; // version updates go here too!
+var versionStr = '3.1.15'; // version updates go here too!
 
 // logs to console; can disable if you want
 var libCLogging = true;
