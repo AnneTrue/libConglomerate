@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           LibC
-// @version        3.1.13
+// @version        3.1.14
 // @description    Lib's Conglomerated Scripts
 // @namespace      https://github.com/AnneTrue/
 // @author         Anne True
@@ -1108,7 +1108,7 @@ function createHelpRow(name, title, helpString) {
     var rowClass, helpRow, fullDisplay = 'none', summaryDisplay = 'table-row';
     if (getSetting('alchemy-toggle-' + name + 'help') == 'full') { fullDisplay = 'table-row'; summaryDisplay = 'none'; }
     rowClass = 'recipe-partial completionlevel-short';
-    helpRow = "<tr id='recipe-"+name+"help-full' class='" + rowClass + "' style='display:" + fullDisplay + "'><td valign='top' class='recipename'><a class='toggleLink' id='toggle-"+name+"help-full'><img src='/images/g/inf/close.gif'/></a>Help: "+title+"</td><td colspan='6' class='recipelist'>" + helpString + "</td>";
+    helpRow = "<tr id='recipe-"+name+"help-full' class='" + rowClass + "' style='display:" + fullDisplay + "'><td valign='top' class='recipename'><a class='toggleLink' id='toggle-"+name+"help-full'><img src='https://nexusclash.com/images/g/inf/close.gif'/></a>Help: "+title+"</td><td colspan='6' class='recipelist'>" + helpString + "</td>";
     helpRow += "<tr id='recipe-"+name+"help-summary' class='" + rowClass + "' style='display:" + summaryDisplay + "'><td valign='top' class='recipename'><a class='toggleLink' id='toggle-"+name+"help-summary'><img src='https://nexusclash.com/images/g/inf/open.gif'/></a>H:"+title+"</td></tr>";
     return helpRow;
 }
@@ -1130,7 +1130,7 @@ function createComponentHelper() {
             cString += "<form name='footlockergrab' action='modules.php?name=Game&amp;op=" + safeRetrieve[1] + "' method='POST' style='display:block'><input type='hidden' name='action' value='retrieve'><input type='hidden' name='item' value='" + safeRetrieve[0] + "'><span class='" + cssClass + "'>" + comp + "</span> (" + count + ") <input type='submit' class='retrieveSafe' title='From "+safeRetrieve[1]+"' value='" + safeRetrieve[1].charAt(0) + "'></form>";
         } else { cString += "<span class='" + cssClass + "'>" + comp + '</span><br/>'; }
     }
-    cRow = "<tr id='recipe-componentshelp-full' class='" + rowClass + "' style='display:" + fullDisplay + "'><td valign='top' class='recipename'><a class='toggleLink' id='toggle-componentshelp-full'><img src='/images/g/inf/close.gif'/></a>Component Dictionary</td><td colspan='6' class='recipelist'>" + cString + "</td>";
+    cRow = "<tr id='recipe-componentshelp-full' class='" + rowClass + "' style='display:" + fullDisplay + "'><td valign='top' class='recipename'><a class='toggleLink' id='toggle-componentshelp-full'><img src='https://nexusclash.com/images/g/inf/close.gif'/></a>Component Dictionary</td><td colspan='6' class='recipelist'>" + cString + "</td>";
     cRow += "<tr id='recipe-componentshelp-summary' class='" + rowClass + "' style='display:" + summaryDisplay + "'><td valign='top' class='recipename'><a class='toggleLink' id='toggle-componentshelp-summary'><img src='https://nexusclash.com/images/g/inf/open.gif'/></a>Comp Dict</td></tr>";
     return cRow;
 }
@@ -1243,7 +1243,7 @@ function formatRecipe(recipe, rowClass) {
         componentString = "[<span class='" + cssClass + " component-fixed'>" + fixedComponents[potionName] + "</span>]<br/>" + componentString;
     }
     rowClass += ' completionlevel-' + completionLevel;
-    recipe = recipe.replace(/^.*<b>Potion of (.+)<\/b>.*$/, "<tr id='recipe-$1-full' class='" + rowClass + "' style='display:" + fullDisplay + "'><td valign='top' class='recipename'><a class='toggleLink' id='toggle-" + potionName + "-full'><img src='/images/g/inf/close.gif'/></a> $1" + safePotionCount + "<br>" + buttonHtml + retform + placeform + "</td><td colspan='6' class='recipelist'>" + componentString + "</td></tr>");
+    recipe = recipe.replace(/^.*<b>Potion of (.+)<\/b>.*$/, "<tr id='recipe-$1-full' class='" + rowClass + "' style='display:" + fullDisplay + "'><td valign='top' class='recipename'><a class='toggleLink' id='toggle-" + potionName + "-full'><img src='https://nexusclash.com/images/g/inf/close.gif'/></a> $1" + safePotionCount + "<br>" + buttonHtml + retform + placeform + "</td><td colspan='6' class='recipelist'>" + componentString + "</td></tr>");
     recipe += "<tr id='recipe-" + potionName + "-summary' class='" + rowClass + "' style='display:" + summaryDisplay + "'>";
     recipe += "<td valign='top' class='recipename'><a class='toggleLink' id='toggle-" + potionName + "-summary'><img src='https://nexusclash.com/images/g/inf/open.gif'/></a> " + shortName + safePotionCountShort + "</td>";
     if (partial) {
