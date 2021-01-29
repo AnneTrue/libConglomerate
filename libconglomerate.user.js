@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           LibC
-// @version        3.1.15
+// @version        3.1.16
 // @description    Lib's Conglomerated Scripts
 // @namespace      https://github.com/AnneTrue/
 // @author         Anne True
@@ -16,7 +16,7 @@
 // ==/UserScript==
 
 (function () {
-var versionStr = '3.1.15'; // version updates go here too!
+var versionStr = '3.1.16'; // version updates go here too!
 
 // logs to console; can disable if you want
 var libCLogging = true;
@@ -380,7 +380,7 @@ function createSortPerson(ppl, allyneutral) {
     logLibC('createSortPerson: ppl=`'+ppl+'`', true);
 
     // politics
-    temp = /a class="(faction|ally|friendly|neutral|enemy|hostile)"/.exec(ppl);
+    temp = /a[^>]+class="(faction|ally|friendly|neutral|enemy|hostile)"/.exec(ppl);
     if (temp) {
         if (temp[1] == 'enemy' || temp[1] == 'hostile') {
             retPerson.politics = 'victims';
